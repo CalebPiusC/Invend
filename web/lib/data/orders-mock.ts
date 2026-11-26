@@ -149,7 +149,7 @@ export function ordersMock(ctx: {
           return fail('CONFLICT', 'Confirm payment before preparing or delivering this order.');
         o.status = input.status;
         if (input.status === 'awaiting_payment')
-          o.paymentLink = `https://paystack.com/pay/selvora-sample-do-not-pay-${o.id}`;
+          o.paymentLink = `https://paystack.com/pay/invend-sample-do-not-pay-${o.id}`;
         timeline(o, orderLabels[input.status], deliveryMessage(o, input.status));
         changed(o);
         return ok(o);

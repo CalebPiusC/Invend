@@ -79,7 +79,7 @@ Merge/unmerge and dead-job inspection are currently API operations, not dedicate
   redirect URI, authorized test users/consent screen. Gmail readonly+send scopes may require
   verification/security review for external production distribution. Configure client secrets
   only server-side. Connect from Channels → Connect Gmail → Continue with Google, then Check
-  connection. Gmail login is a connection flow after Selvora workspace authentication.
+  connection. Gmail login is a connection flow after Invend workspace authentication.
 - Create Pub/Sub topic; grant `gmail-api-push@system.gserviceaccount.com` publish permission.
   Configure an authenticated push subscription to public `/v1/webhooks/gmail` (or proxied
   `/api/v1/webhooks/gmail`). Configure its OIDC service-account identity and exact audience in

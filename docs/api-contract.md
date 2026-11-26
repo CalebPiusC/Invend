@@ -1,4 +1,4 @@
-# Selvora frontend data contract
+# Invend frontend data contract
 
 Current declarations below are generated from TypeScript. They describe interfaces,
 not proof that an API exists or a screen works against it. Current capability and

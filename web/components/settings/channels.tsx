@@ -20,7 +20,7 @@ export function ChannelsSettings() {
     <section className="space-y-4">
       <h2 className="text-xl font-semibold">Your channels</h2>
       <p className="text-sm leading-6 text-slate-500">
-        Customer replies go from your own connected accounts. Selvora’s WhatsApp helper is separate
+        Customer replies go from your own connected accounts. Invend’s WhatsApp helper is separate
         and only helps you make quick updates.
       </p>
       <Button
@@ -92,7 +92,7 @@ export function ChannelsSettings() {
               <p className="my-3 text-xs leading-6 text-slate-500">
                 {client.mode === 'mock'
                   ? 'Sample only: no provider login, permissions or real account access. Never enter a password here.'
-                  : 'Complete the provider authorisation flow. Never give your password to Selvora.'}
+                  : 'Complete the provider authorisation flow. Never give your password to Invend.'}
               </p>
               <div className="flex flex-wrap gap-2">
                 {attempt.authorizationUrl?.startsWith('https://accounts.google.com/') && (
@@ -214,7 +214,7 @@ function HelperScreen({ onBack }: { onBack: () => void }) {
       </Button>
       <h2 className="text-xl font-semibold">WhatsApp quick-update helper</h2>
       <p className="text-sm leading-6 text-slate-500">
-        Selvora’s number is only a helper for quick updates, like stock changes. It does not replace
+        Invend’s number is only a helper for quick updates, like stock changes. It does not replace
         your business number. Customer replies still come from your own account.
       </p>
       <ResourceView resource={link}>
@@ -285,7 +285,7 @@ function HelperCode({ link: h, refresh }: { link: HelperLink; refresh: () => voi
           <ol className="my-4 list-inside list-decimal space-y-3 text-sm leading-6">
             <li>Open WhatsApp using your vendor account.</li>
             <li>
-              Send this code to Selvora’s WhatsApp helper number
+              Send this code to Invend’s WhatsApp helper number
               {h.helperNumber ? `: ${h.helperNumber}` : '.'}
             </li>
             <li>Return here to check the link.</li>

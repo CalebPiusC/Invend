@@ -25,8 +25,8 @@ async def email(settings, to, name, url, idempotency):
                 json={
                     "from": settings.email_from,
                     "to": [to],
-                    "subject": "Your Selvora team invitation",
-                    "text": f"Hello {name},\nYou have been invited to a Selvora workspace. Sign in with this verified email address and accept the invitation:\n{url}\nThis invitation expires in 7 days. If unexpected, ignore it.",
+                    "subject": "Your Invend team invitation",
+                    "text": f"Hello {name},\nYou have been invited to an Invend workspace. Sign in with this verified email address and accept the invitation:\n{url}\nThis invitation expires in 7 days. If unexpected, ignore it.",
                 },
             )
         if not r.is_success:

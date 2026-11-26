@@ -1,1 +1,1 @@
-"""Selvora foundation API."""
+"""Invend foundation API."""

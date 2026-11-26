@@ -6,7 +6,7 @@ import { parseDataMode } from '../../lib/data/mode';
 
 export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
-  title: 'Your workspace — Selvora',
+  title: 'Your workspace — Invend',
   robots: { index: false, follow: false },
 };
 

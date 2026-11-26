@@ -8,6 +8,7 @@ import type { Tab, Vendor, InstallEvent } from '../lib/workspace-types';
 import { AuthScreen } from './auth-screen';
 import { OnboardingScreen } from './onboarding-screen';
 import { AppShell } from './app-shell';
+import { BrandIcon } from './brand-icon';
 import { useDataClient } from './data/provider';
 export function Workspace({ initialSignUp = true }: { initialSignUp?: boolean } = {}) {
   const { client, preferences, configureVendor } = useDataClient();
@@ -218,11 +219,9 @@ export function Workspace({ initialSignUp = true }: { initialSignUp?: boolean } 
   const brand = (
     <div className="flex items-center gap-2.5">
       <span className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-2xl font-bold text-white">
-        s<span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-gold" />
+        <BrandIcon size={34} />
       </span>
-      <span className="font-heading text-2xl font-bold tracking-tight">
-        selvora<span className="text-primary">.</span>
-      </span>
+      <span className="font-heading text-2xl font-bold tracking-tight">invend</span>
     </div>
   );
   const themeButton = (

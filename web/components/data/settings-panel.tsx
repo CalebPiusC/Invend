@@ -133,7 +133,7 @@ function Business({ settings: s }: { settings: BusinessSettings }) {
       ))}
       <p className="mt-6 text-xs leading-6 text-slate-500">
         Customer prices, floors, stock and delivery fees remain fact-sheet data. Nothing here
-        enables “approve everything”, screenshot payment confirmation or replies from Selvora’s
+        enables “approve everything”, screenshot payment confirmation or replies from Invend’s
         helper number.
       </p>
       {action.error && (
