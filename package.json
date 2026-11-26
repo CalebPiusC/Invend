@@ -19,6 +19,7 @@
     "check:browser-env": "node scripts/check-browser-env.mjs",
     "docs:contract": "node scripts/write-api-contract.mjs",
     "test:contract": "node --test tests/contract-doc.test.mjs",
+    "test:homepage": "node tests/homepage.mjs",
     "test:mobile": "node tests/inbox-mobile.mjs",
     "test:orders:mobile": "node tests/orders-mobile.mjs",
     "test:settings:mobile": "node tests/settings-mobile.mjs",

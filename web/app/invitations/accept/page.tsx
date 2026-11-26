@@ -52,7 +52,7 @@ export default function AcceptInvitation() {
         Accept invitation
       </button>
       <p>
-        <a href="/" target="_blank" rel="noreferrer">
+        <a href="/app?auth=sign-in" target="_blank" rel="noreferrer">
           Open sign in in a new tab
         </a>
       </p>

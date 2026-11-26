@@ -9,7 +9,7 @@ import { AuthScreen } from './auth-screen';
 import { OnboardingScreen } from './onboarding-screen';
 import { AppShell } from './app-shell';
 import { useDataClient } from './data/provider';
-export function Workspace() {
+export function Workspace({ initialSignUp = true }: { initialSignUp?: boolean } = {}) {
   const { client, preferences, configureVendor } = useDataClient();
   const sample = client.mode === 'mock';
   const [stage, setStage] = useState<'loading' | 'auth' | 'onboard' | 'app'>(
@@ -30,7 +30,7 @@ export function Workspace() {
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [signUp, setSignUp] = useState(true);
+  const [signUp, setSignUp] = useState(initialSignUp);
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState(0);

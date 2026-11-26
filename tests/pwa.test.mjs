@@ -5,7 +5,11 @@ import vm from 'node:vm';
 test('manifest has standalone mode and installable icon sizes', async () => {
   const manifest = JSON.parse(await readFile('web/public/manifest.webmanifest', 'utf8'));
   assert.equal(manifest.display, 'standalone');
-  assert.equal(manifest.start_url, '/');
+  assert.equal(manifest.start_url, '/app');
+  assert.equal(manifest.id, '/', 'retain the installed identity when the public homepage moves');
+  assert.equal(manifest.scope, '/');
+  assert.equal(manifest.theme_color, '#0F766E');
+  assert.equal(manifest.background_color, '#F8F9FA');
   for (const size of [192, 512]) {
     const icon = manifest.icons.find((i) => i.sizes === `${size}x${size}`);
     assert.ok(icon);
