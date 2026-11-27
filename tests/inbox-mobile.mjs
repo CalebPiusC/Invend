@@ -11,7 +11,7 @@ try {
   });
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto(process.env.SELVORA_TEST_URL ?? 'http://localhost:3000/');
+  await page.goto(process.env.INVEND_TEST_URL ?? 'http://localhost:3000/');
   await page.getByText('40 conversations', { exact: true }).waitFor();
   const fits = async (label) =>
     assert.ok(
@@ -90,10 +90,10 @@ try {
   await fits('customer drawer');
   await page.getByRole('button', { name: 'Close details', exact: true }).click();
   await fits('conversation');
-  if (process.env.SELVORA_SCREENSHOT_DIR) {
-    await mkdir(process.env.SELVORA_SCREENSHOT_DIR, { recursive: true });
+  if (process.env.INVEND_SCREENSHOT_DIR) {
+    await mkdir(process.env.INVEND_SCREENSHOT_DIR, { recursive: true });
     await page.screenshot({
-      path: join(process.env.SELVORA_SCREENSHOT_DIR, 'inbox-phone.png'),
+      path: join(process.env.INVEND_SCREENSHOT_DIR, 'inbox-phone.png'),
       fullPage: true,
     });
   }

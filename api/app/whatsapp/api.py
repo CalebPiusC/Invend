@@ -84,7 +84,7 @@ async def helper_dto(rt, vendor, member):
         )
     if not row or (row["status"] == "pending" and row["expires_at"] <= datetime.now(UTC)):
         return None
-    raw = await rt.queue.redis.get("selvora:helper-view:" + str(row["id"]))
+    raw = await rt.queue.redis.get("invend:helper-view:" + str(row["id"]))
     code = (
         rt.crypto.open(bytes(raw), row["key_version"], f"{vendor}:helper-view").decode()
         if raw and row["status"] == "pending"
@@ -132,7 +132,7 @@ async def new_code(rt: RuntimeDep, user: UserDep, vendor: VendorDep):
             rt.crypto.version,
         )
         await rt.queue.redis.set(
-            "selvora:helper-view:" + binding["id"],
+            "invend:helper-view:" + binding["id"],
             rt.crypto.seal(binding["code"].encode(), f"{vendor}:helper-view"),
             ex=600,
         )

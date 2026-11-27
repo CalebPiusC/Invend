@@ -39,7 +39,7 @@ test('scalable logo variants and legacy SVG URLs share one message-first path, n
     'invend-compact.svg',
     'favicon.svg',
     'icon.svg',
-    'selvora-mark.svg',
+    'invend-mark.svg',
   ]) {
     const svg = (await publicFile(name)).toString();
     assert.ok(svg.includes(`d="${INVEND_CHAT_CART_PATH}"`), name);
@@ -57,7 +57,7 @@ test('scalable logo variants and legacy SVG URLs share one message-first path, n
     (await publicFile('invend-logo.svg')).toString().includes(INVEND_CHARCOAL),
     'wordmark remains charcoal',
   );
-  assert.deepEqual(await publicFile('selvora-mark.svg'), await publicFile('favicon.svg'));
+  assert.deepEqual(await publicFile('invend-mark.svg'), await publicFile('favicon.svg'));
 });
 
 test('touch icon and favicon contain correctly sized real PNG images', async () => {
@@ -115,9 +115,9 @@ async function worker() {
   const calls = [];
   const stores = new Map([
     ['selvora-static-v1', new Map([['/offline.html', 'old branding']])],
-    ['selvora-static-v2', new Map([['/invend-icon-192.png', 'previous bag icon']])],
-    ['selvora-static-v3', new Map([['/invend-icon-192.png', 'previous bag icon']])],
     ['selvora-static-v4', new Map([['/invend-icon-192.png', 'previous cart-first icon']])],
+    ['selvora-static-v5', new Map([['/invend-icon-192.png', 'legacy Invend icon']])],
+    ['invend-static-v5', new Map([['/invend-icon-192.png', 'previous cart-first icon']])],
     ['another-app-cache', new Map([['/offline.html', 'unrelated content']])],
   ]);
   let claimed = false;
@@ -159,9 +159,10 @@ test('branding upgrade evicts the old offline cache without deleting another app
   const sw = await worker();
   assert.deepEqual(sw.cached, ['/offline.html', '/invend-icon-192.png']);
   await sw.dispatch('activate');
-  for (const version of [1, 2, 3, 4])
-    assert.equal(sw.stores.has(`selvora-static-v${version}`), false);
-  assert.equal(sw.stores.has('selvora-static-v5'), true);
+  for (const version of [1, 4, 5])
+    assert.equal(sw.stores.has(`selvora-static-v${version}`), false, `legacy v${version} evicted`);
+  assert.equal(sw.stores.has('invend-static-v5'), false, 'previous namespace evicted');
+  assert.equal(sw.stores.has('invend-static-v6'), true);
   assert.equal(sw.stores.has('another-app-cache'), true);
   assert.equal(sw.claimed(), true);
 });

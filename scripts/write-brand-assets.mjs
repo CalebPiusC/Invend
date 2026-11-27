@@ -64,7 +64,7 @@ for (const [name, contents] of Object.entries({
   'favicon.svg': tile,
   // Existing URLs remain valid, but no longer serve the old symbol.
   'icon.svg': tile,
-  'selvora-mark.svg': tile,
+  'invend-mark.svg': tile,
 }))
   await writeFile(`web/public/${name}`, contents);
 for (const size of [192, 512]) {

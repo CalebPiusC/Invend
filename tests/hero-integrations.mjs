@@ -6,9 +6,9 @@ import { launchBrowser } from './helpers/chromium.mjs';
 
 // Local browser acceptance, not native-install/provider/physical-device acceptance.
 // Synthetic browser-install events are explicitly isolated from real browser prompting.
-const origin = process.env.SELVORA_HOME_URL ?? 'http://localhost:3000/';
-const artifacts = process.env.SELVORA_SCREENSHOT_DIR ?? '.next/invend-hero-integrations/browser';
-const widths = process.env.SELVORA_HERO_WIDTHS?.split(',').map(Number) ?? [
+const origin = process.env.INVEND_HOME_URL ?? 'http://localhost:3000/';
+const artifacts = process.env.INVEND_SCREENSHOT_DIR ?? '.next/invend-hero-integrations/browser';
+const widths = process.env.INVEND_HERO_WIDTHS?.split(',').map(Number) ?? [
   320, 375, 390, 430, 640, 699, 700, 768, 900, 1024, 1099, 1100, 1280, 1440, 1920,
 ];
 const tools = [
@@ -514,7 +514,7 @@ try {
   assert.equal(await install(page).count(), 0, 'known installation hides the action');
   const cache = await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.ready;
-    const paths = (await (await caches.open('selvora-static-v5')).keys())
+    const paths = (await (await caches.open('invend-static-v6')).keys())
       .map((request) => new URL(request.url).pathname)
       .sort();
     return { scope: new URL(registration.scope).pathname, paths };

@@ -5,9 +5,9 @@ import { launchBrowser } from './helpers/chromium.mjs';
 import { fullPageScreenshot } from './helpers/full-page-screenshot.mjs';
 
 // Local browser verification only. No live provider, account creation, message or payment.
-const origin = process.env.SELVORA_HOME_URL ?? 'http://localhost:3000/';
-const artifacts = process.env.SELVORA_SCREENSHOT_DIR;
-const widths = process.env.SELVORA_HOME_WIDTHS?.split(',').map(Number) ?? [
+const origin = process.env.INVEND_HOME_URL ?? 'http://localhost:3000/';
+const artifacts = process.env.INVEND_SCREENSHOT_DIR;
+const widths = process.env.INVEND_HOME_WIDTHS?.split(',').map(Number) ?? [
   320, 375, 390, 430, 768, 900, 1024, 1100, 1280, 1440, 1920,
 ];
 if (artifacts) await mkdir(artifacts, { recursive: true });

@@ -18,7 +18,7 @@ create function public.b5_helper_route(p_hash text) returns table(vendor_id uuid
  select h.vendor_id,h.member_id from public.helper_links h join public.vendor_members m on m.vendor_id=h.vendor_id and m.id=h.member_id where h.sender_hash=p_hash and h.status='linked' and m.status='active' and m.role in ('owner','manager') limit 1;
 $$;
 revoke all on function public.b5_whatsapp_route(text),public.b5_helper_route(text) from public,anon,authenticated,service_role;
-grant execute on function public.b5_whatsapp_route(text),public.b5_helper_route(text) to selvora_service;
+grant execute on function public.b5_whatsapp_route(text),public.b5_helper_route(text) to invend_service;
 -- Raw media must never be browser-readable via table grants/realtime. It lives in
 -- server-only webhook_events. Message columns carry no ciphertext in this increment.
 revoke select on public.webhook_events from authenticated;

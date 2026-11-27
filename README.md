@@ -17,8 +17,8 @@ Python is used by the build's reply-safety evaluation; the sample dev server its
 needs only Node/npm. Full native backend tests are best run on Linux/WSL2.
 
 ```sh
-git clone https://github.com/CalebPiusC/selvora.git
-cd selvora
+git clone https://github.com/CalebPiusC/Invend.git
+cd Invend
 node --version
 npm --version
 python3 --version
@@ -99,7 +99,7 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --no-access-l
 For optional local PostgreSQL/Redis, copy root `.env.example` to `.env`, replace
 its local-only password placeholder with a strong unique password, then run
 `docker compose up -d`. Compose's administrator is **not** the API login: provision
-a separate NOINHERIT/NOSUPERUSER/NOBYPASSRLS login granted `selvora_service` using
+a separate NOINHERIT/NOSUPERUSER/NOBYPASSRLS login granted `invend_service` using
 [the pipeline guide](docs/backend/gmail-pipeline.md). Never use production data.
 Init migrations run only for new volumes; apply new migrations explicitly to
 existing volumes. Do not use `docker compose down -v` on data you need.
@@ -159,7 +159,7 @@ npm run test:readiness
 
 Native SQL/Redis tests use disposable local fixtures, not hosted accounts. The
 cold physical restore test is Linux-specific. For UI/layout checks run a sample
-production server, then use `SELVORA_TEST_URL=http://localhost:3001 npm run test:ui`
+production server, then use `INVEND_TEST_URL=http://localhost:3001 npm run test:ui`
 and `npm run test:layout`; see the responsive guide. Physical Android Chrome and
 iPhone Safari remain a separate manual checklist.
 

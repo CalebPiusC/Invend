@@ -58,11 +58,11 @@ Merge/unmerge and dead-job inspection are currently API operations, not dedicate
    PostgreSQL17 and Redis7 AOF. Initialization migrations run only on a **new** volume; existing
    deployments must apply 005 transactionally with their migration owner. Do not reset real data.
 3. Provision a dedicated DB login securely (password supplied through your secret manager):
-   `CREATE ROLE selvora_pipeline LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS;`
-   `GRANT selvora_service TO selvora_pipeline;`
+   `CREATE ROLE invend_pipeline LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS;`
+   `GRANT invend_service TO invend_pipeline;`
    Configure API/worker DATABASE_URL with this role, not the migration owner. Pool startup rejects
    superuser/BYPASSRLS/INHERIT/role-creation/database-creation/replication logins. Runtime always
-   SET LOCAL ROLE selvora_service and sets app.vendor_id inside the transaction.
+   SET LOCAL ROLE invend_service and sets app.vendor_id inside the transaction.
 4. Generate two independent secrets using `secrets.token_bytes(32)` and URL-safe base64. Store
    one in PIPELINE_KEYS JSON and the other in IDENTITY_PEPPER. Set PIPELINE_ENABLED=true only
    after keys, DB, Redis and Google settings are present. Keep secrets outside Git/chat/logs.

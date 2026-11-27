@@ -21,7 +21,7 @@ try {
   );
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  const base = process.env.SELVORA_TEST_URL ?? 'http://localhost:3000/';
+  const base = process.env.INVEND_TEST_URL ?? 'http://localhost:3000/';
   await page.goto(base);
   await page
     .getByRole('navigation', { name: 'Mobile navigation' })
@@ -103,12 +103,12 @@ try {
     'issued receipt snapshot remains unchanged after delivery',
   );
   await fits('delivered order');
-  if (process.env.SELVORA_SCREENSHOT_DIR) {
-    await mkdir(process.env.SELVORA_SCREENSHOT_DIR, { recursive: true });
+  if (process.env.INVEND_SCREENSHOT_DIR) {
+    await mkdir(process.env.INVEND_SCREENSHOT_DIR, { recursive: true });
     await receipt.screenshot({
-      path: join(process.env.SELVORA_SCREENSHOT_DIR, 'receipt-phone.png'),
+      path: join(process.env.INVEND_SCREENSHOT_DIR, 'receipt-phone.png'),
     });
-    await download.saveAs(join(process.env.SELVORA_SCREENSHOT_DIR, 'receipt-0013.pdf'));
+    await download.saveAs(join(process.env.INVEND_SCREENSHOT_DIR, 'receipt-0013.pdf'));
   }
   const reader = await browser.newPage({
     viewport: { width: 390, height: 844 },

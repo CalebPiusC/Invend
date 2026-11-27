@@ -10,7 +10,7 @@ import { b0Fixture } from './b0-fixtures.mjs';
 
 test('cold physical backup restores full schema, receipts and encrypted records into isolated cluster', async () => {
   const bin = await import(`@embedded-postgres/linux-${process.arch}`);
-  const root = await mkdtemp(path.join(tmpdir(), 'selvora-restore-'));
+  const root = await mkdtemp(path.join(tmpdir(), 'invend-restore-'));
   const source = path.join(root, 'source'),
     backup = path.join(root, 'backup'),
     restored = path.join(root, 'restored');
@@ -79,7 +79,7 @@ test('cold physical backup restores full schema, receipts and encrypted records 
         .rows[0].ciphertext,
       ciphertext,
     );
-    await db.query('set role selvora_service');
+    await db.query('set role invend_service');
     await db.query("select set_config('app.vendor_id',$1,false)", [fixture.vendor]);
     assert.equal(
       (await db.query('select b9_ai_paused($1) paused', [fixture.vendor])).rows[0].paused,

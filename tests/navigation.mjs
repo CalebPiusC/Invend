@@ -4,9 +4,9 @@ import { join } from 'node:path';
 import { launchBrowser } from './helpers/chromium.mjs';
 
 // Local browser acceptance. No real signup, provider connection, message, payment or tenant data.
-const origin = process.env.SELVORA_HOME_URL ?? 'http://localhost:3000/';
-const artifacts = process.env.SELVORA_SCREENSHOT_DIR ?? '.next/invend-navigation/browser';
-const widths = process.env.SELVORA_NAV_WIDTHS?.split(',').map(Number) ?? [
+const origin = process.env.INVEND_HOME_URL ?? 'http://localhost:3000/';
+const artifacts = process.env.INVEND_SCREENSHOT_DIR ?? '.next/invend-navigation/browser';
+const widths = process.env.INVEND_NAV_WIDTHS?.split(',').map(Number) ?? [
   320, 375, 390, 430, 768, 900, 1024, 1099, 1100, 1280, 1440, 1920,
 ];
 const features = [

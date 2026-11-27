@@ -12,8 +12,8 @@ services:
         'log_parameter_max_length_on_error=0',
       ]
     environment:
-      POSTGRES_DB: selvora
-      POSTGRES_USER: selvora
+      POSTGRES_DB: invend
+      POSTGRES_USER: invend
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
       - '127.0.0.1:5432:5432'
@@ -32,7 +32,7 @@ services:
       - ./supabase/migrations/202611100010_insights_billing.sql:/docker-entrypoint-initdb.d/011-billing.sql:ro
       - ./supabase/migrations/202611100011_go_live.sql:/docker-entrypoint-initdb.d/012-go-live.sql:ro
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U selvora']
+      test: ['CMD-SHELL', 'pg_isready -U invend']
       interval: 5s
       timeout: 3s
       retries: 10

@@ -13,7 +13,7 @@ if (!process.env.SUPABASE_TEST_DATABASE_URL) {
 } else {
   const c = new pg.Client({
     connectionString: process.env.SUPABASE_TEST_DATABASE_URL,
-    application_name: 'selvora-b0-rollback-check',
+    application_name: 'invend-b0-rollback-check',
     connectionTimeoutMillis: 15000,
   });
   let connected = false;
@@ -90,7 +90,7 @@ if (!process.env.SUPABASE_TEST_DATABASE_URL) {
           throw Object.assign(new Error('Unexpected table grant'), { code: 'UNSAFE_GRANT' });
       }
     const worker = await db.query(
-      "select rolbypassrls,rolsuper,rolcanlogin,rolinherit from pg_roles where rolname='selvora_service'",
+      "select rolbypassrls,rolsuper,rolcanlogin,rolinherit from pg_roles where rolname='invend_service'",
     );
     if (worker.rows.length !== 1 || Object.values(worker.rows[0]).some(Boolean))
       throw Object.assign(new Error('Unsafe worker role'), { code: 'UNSAFE_WORKER' });

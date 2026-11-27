@@ -33,7 +33,7 @@ try {
       );
   });
   const start = Date.now();
-  await page.goto(process.env.SELVORA_TEST_URL ?? 'http://localhost:3001/');
+  await page.goto(process.env.INVEND_TEST_URL ?? 'http://localhost:3001/');
   await page.getByText('40 conversations', { exact: true }).waitFor({ timeout: 60000 });
   await Promise.all(pending);
   const initial = [...assets.values()].reduce(

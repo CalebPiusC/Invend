@@ -22,14 +22,14 @@ class Database:
             try:
                 async with pool.acquire() as conn:
                     safe = await conn.fetchval("""SELECT NOT (rolsuper OR rolbypassrls OR rolinherit OR rolcreaterole OR rolcreatedb OR rolreplication)
-                        AND pg_has_role(current_user,'selvora_service','MEMBER')
+                        AND pg_has_role(current_user,'invend_service','MEMBER')
                         FROM pg_roles WHERE rolname=current_user""")
                     if not safe:
                         raise ValueError(
-                            "Pipeline requires a restricted NOINHERIT login with membership in selvora_service"
+                            "Pipeline requires a restricted NOINHERIT login with membership in invend_service"
                         )
                     async with conn.transaction():
-                        await conn.execute("SET LOCAL ROLE selvora_service")
+                        await conn.execute("SET LOCAL ROLE invend_service")
                         await conn.execute(
                             "SELECT reply_context,commerce_context,template_context,media_language,extras_context FROM public.messages LIMIT 0"
                         )
@@ -38,7 +38,7 @@ class Database:
                     ):
                         # Column metadata can be hidden from the login until SET ROLE.
                         async with conn.transaction():
-                            await conn.execute("SET LOCAL ROLE selvora_service")
+                            await conn.execute("SET LOCAL ROLE invend_service")
                             await conn.execute("SELECT followup_id FROM public.jobs LIMIT 0")
             except BaseException:
                 await pool.close()
@@ -55,7 +55,7 @@ class Database:
     ):
         await self.connect()
         async with self.pool.acquire() as conn, conn.transaction():
-            await conn.execute("SET LOCAL ROLE selvora_service")
+            await conn.execute("SET LOCAL ROLE invend_service")
             await conn.execute(
                 "SELECT set_config('app.vendor_id',$1,true)", str(vendor) if vendor else ""
             )

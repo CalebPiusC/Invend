@@ -9,7 +9,7 @@ try {
   });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto(process.env.SELVORA_TEST_URL ?? 'http://localhost:3001/');
+  await page.goto(process.env.INVEND_TEST_URL ?? 'http://localhost:3001/');
   await page.getByText('40 conversations', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   await page.getByText('Your business', { exact: true }).waitFor();

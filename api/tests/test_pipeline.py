@@ -70,7 +70,7 @@ async def test_gmail_thread_headers_and_no_caller_from():
         assert mail["From"] is None
         assert mail["In-Reply-To"] == "<parent@example.test>"
         assert mail["References"] == "<parent@example.test>"
-        assert mail["Message-ID"] == "<stable@selvora.invalid>"
+        assert mail["Message-ID"] == "<stable@invend.invalid>"
         assert mail["Subject"] == "Re: Enquiry"
         return httpx.Response(200, json={"id": "sent-one"})
 
@@ -83,7 +83,7 @@ async def test_gmail_thread_headers_and_no_caller_from():
                     "Thank you",
                     "Enquiry",
                     "thread-one",
-                    "<stable@selvora.invalid>",
+                    "<stable@invend.invalid>",
                     "<parent@example.test>",
                 )
             )

@@ -1,6 +1,6 @@
 # B0 table role matrix
 
-Authoritative executable permissions: `role-matrix.json`; enforced by SQL policies AND grants. R=SELECT, I=INSERT, U=UPDATE, D=DELETE; —=denied. Every table × role × operation has a real SQL test (816 cases). All roles are tenant scoped; anonymous access is denied. Service means `selvora_service`, NOT Supabase `service_role`.
+Authoritative executable permissions: `role-matrix.json`; enforced by SQL policies AND grants. R=SELECT, I=INSERT, U=UPDATE, D=DELETE; —=denied. Every table × role × operation has a real SQL test (816 cases). All roles are tenant scoped; anonymous access is denied. Service means `invend_service`, NOT Supabase `service_role`.
 
 | Table | Owner | Manager | Agent | Service | Notes |
 |---|---|---|---|---|---|
@@ -60,4 +60,4 @@ Human roles are active vendor_members resolved from auth.uid(), never editable J
 
 Existing controlled RPC exceptions: onboard_vendor creates a tenant/owner/config atomically; legacy confirm_vendor_payment and issue_receipt browser execution is revoked by B4 migration007; use the authorized payment-confirmation and receipt APIs instead. Receipt, event, payment, stock ledger, usage ledger and audit rows reject UPDATE/DELETE even for the bounded service role. DELETE is intentionally absent on core business records; use status/archive/retention design instead.
 
-Do not give authenticated, anon or service_role membership in selvora_service. A dedicated server login must be NOINHERIT/NOBYPASSRLS and explicitly SET LOCAL ROLE selvora_service plus SET LOCAL app.vendor_id per transaction after authorization. SQL validates the selected tenant on every row. Supabase’s bypass key has table privileges revoked; hosted owner/superuser can always alter security and is not an application role.
+Do not give authenticated, anon or service_role membership in invend_service. A dedicated server login must be NOINHERIT/NOBYPASSRLS and explicitly SET LOCAL ROLE invend_service plus SET LOCAL app.vendor_id per transaction after authorization. SQL validates the selected tenant on every row. Supabase’s bypass key has table privileges revoked; hosted owner/superuser can always alter security and is not an application role.

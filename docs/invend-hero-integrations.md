@@ -2,7 +2,7 @@
 
 ## Outcome
 
-Implemented the two consecutive opening sections on **`arena/eb88ea34-selvora`**, without publishing or changing the approved navbar implementation.
+Implemented the two consecutive opening sections on **`arena/eb88ea34-invend`**, without publishing or changing the approved navbar implementation.
 
 - A centred, content-sized hero uses the supplied copy and existing auth/workflow destinations. A prominent mobile workspace overlaps a supporting dashboard at the front/right.
 - A discreet PWA installation control uses a real browser-provided prompt when available, otherwise dismissible platform-specific instructions.
@@ -197,35 +197,35 @@ npm run test:security
 npm run test:contract
 npm run build
 
-SELVORA_HOME_URL=http://localhost:3001/ \
-  SELVORA_SCREENSHOT_DIR=.next/invend-hero-integrations/production \
+INVEND_HOME_URL=http://localhost:3001/ \
+  INVEND_SCREENSHOT_DIR=.next/invend-hero-integrations/production \
   node tests/hero-integrations.mjs
 
-SELVORA_HOME_URL=http://localhost:3001/ \
-  SELVORA_SCREENSHOT_DIR=.next/invend-hero-integrations/navigation \
+INVEND_HOME_URL=http://localhost:3001/ \
+  INVEND_SCREENSHOT_DIR=.next/invend-hero-integrations/navigation \
   node tests/navigation.mjs
 
-SELVORA_HOME_URL=http://localhost:3001/ \
-  SELVORA_SCREENSHOT_DIR=.next/invend-hero-integrations/homepage \
+INVEND_HOME_URL=http://localhost:3001/ \
+  INVEND_SCREENSHOT_DIR=.next/invend-hero-integrations/homepage \
   node tests/homepage.mjs
 
-SELVORA_TEST_URL=http://localhost:3001/app \
-  SELVORA_SCREENSHOT_DIR=.next/invend-hero-integrations/branding \
+INVEND_TEST_URL=http://localhost:3001/app \
+  INVEND_SCREENSHOT_DIR=.next/invend-hero-integrations/branding \
   node tests/branding.mjs
 
-SELVORA_TEST_URL=http://localhost:3001/app \
-  SELVORA_SCREENSHOT_DIR=.next/invend-hero-integrations/onboarding \
+INVEND_TEST_URL=http://localhost:3001/app \
+  INVEND_SCREENSHOT_DIR=.next/invend-hero-integrations/onboarding \
   node tests/onboarding.mjs
 
-SELVORA_TEST_URL=http://localhost:3001/app node tests/frontend-demo.mjs
+INVEND_TEST_URL=http://localhost:3001/app node tests/frontend-demo.mjs
 
 # This complete unsigned-sample sharing test requires an explicitly mock-mode server.
-SELVORA_TEST_URL=http://localhost:3000/app \
-  SELVORA_SCREENSHOT_DIR=.next/invend-hero-integrations/orders-mock \
+INVEND_TEST_URL=http://localhost:3000/app \
+  INVEND_SCREENSHOT_DIR=.next/invend-hero-integrations/orders-mock \
   node tests/orders-mobile.mjs
 ```
 
-For focused reruns, the new browser script accepts `SELVORA_HERO_WIDTHS`; navigation/homepage retain their existing width controls. Their final acceptance runs used the full matrices, not narrowed substitutes.
+For focused reruns, the new browser script accepts `INVEND_HERO_WIDTHS`; navigation/homepage retain their existing width controls. Their final acceptance runs used the full matrices, not narrowed substitutes.
 
 ### Remaining acceptance boundaries
 

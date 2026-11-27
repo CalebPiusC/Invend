@@ -11,7 +11,7 @@ try {
     isMobile: true,
     hasTouch: true,
   });
-  await page.goto(process.env.SELVORA_TEST_URL ?? 'http://localhost:3001/');
+  await page.goto(process.env.INVEND_TEST_URL ?? 'http://localhost:3001/');
   await page.getByText('40 conversations', { exact: true }).waitFor();
   await page.addScriptTag({ path: require.resolve('axe-core/axe.min.js') });
   const scan = async (label) => {

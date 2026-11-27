@@ -6,7 +6,7 @@ This is a focused navigation/identity change. The completed marketing page desig
 
 ## 1. Audit before implementation
 
-- Working branch: `arena/eb88ea34-selvora`; unchanged HEAD: `b03c8f04e288acd3ff3a62a0796ae2a0b6ee7ca7`.
+- Working branch: `arena/eb88ea34-invend`; unchanged HEAD: `b03c8f04e288acd3ff3a62a0796ae2a0b6ee7ca7`.
 - A new preservation baseline was captured **before navigation changes**: 365 SHA-256 file hashes in `/tmp/invend-navigation-baseline.json`, including 19 protected historical documents. The previous website task's baseline was not used as this task's allowlist.
 - The original header was full-width, with seven links, a late hero-exit solid state and a native mobile dialog. It already provided section tracking, background locking and real authentication destinations; these behaviours were retained or deliberately extended rather than replaced with a new routing system.
 - Existing stack: Next.js App Router, React 19, TypeScript, CSS Modules and Lucide. Local Plus Jakarta Sans 500/600/700 and Inter 400/500/600 were already loaded. **No dependency, font file, external script or public route was added.**
@@ -58,7 +58,7 @@ All previews are explicitly labelled **fictional product examples**, not screens
 - The navigation wordmark is capitalised **Invend**. Existing wordmark treatments outside navigation remain unchanged; shared React icons inherit their existing context colours to avoid restyling the application.
 - All **13 generated identity assets** were updated: SVG icon/compact/horizontal/inverse variants, favicon SVG/ICO, Apple touch icon, 192/512px install icons and legacy URL aliases.
 - Actual 16/24/32/48px favicon/symbol renderings, inverse artwork and circular mask crops were inspected. PWA raster tests confirm the symbol stays inside the maskable safe circle.
-- The existing service-worker namespace advances from `selvora-static-v4` to **`selvora-static-v5`** to replace the cached icon. Cache cleanup preserves unrelated applications' caches. Authenticated pages and API responses remain uncached.
+- The existing service-worker namespace advances from `invend-static-v4` to **`invend-static-v5`** to replace the cached icon. Cache cleanup preserves unrelated applications' caches. Authenticated pages and API responses remain uncached.
 - Manifest ID/scope `/`, start URL `/app`, application theme `#242066`, background `#F8FAFC` and offline reconnection behaviour are unchanged. Asset regeneration was rerun and proved byte-for-byte deterministic.
 
 ## 3. Explicit contrast exception
@@ -151,23 +151,23 @@ npm run start -w web -- --port 3001
 With the production server running:
 
 ```bash
-SELVORA_HOME_URL=http://localhost:3001/ \
-SELVORA_SCREENSHOT_DIR=.next/invend-navigation/production \
+INVEND_HOME_URL=http://localhost:3001/ \
+INVEND_SCREENSHOT_DIR=.next/invend-navigation/production \
 node tests/navigation.mjs
 
-SELVORA_HOME_URL=http://localhost:3001/ \
-SELVORA_SCREENSHOT_DIR=.next/invend-navigation/homepage-production \
+INVEND_HOME_URL=http://localhost:3001/ \
+INVEND_SCREENSHOT_DIR=.next/invend-navigation/homepage-production \
 node tests/homepage.mjs
 
-SELVORA_TEST_URL=http://localhost:3001/app \
-SELVORA_SCREENSHOT_DIR=.next/invend-navigation/branding \
+INVEND_TEST_URL=http://localhost:3001/app \
+INVEND_SCREENSHOT_DIR=.next/invend-navigation/branding \
 node tests/branding.mjs
 
-SELVORA_TEST_URL=http://localhost:3001/app \
-SELVORA_SCREENSHOT_DIR=.next/invend-navigation/onboarding \
+INVEND_TEST_URL=http://localhost:3001/app \
+INVEND_SCREENSHOT_DIR=.next/invend-navigation/onboarding \
 node tests/onboarding.mjs
 
-SELVORA_TEST_URL=http://localhost:3001/app node tests/frontend-demo.mjs
+INVEND_TEST_URL=http://localhost:3001/app node tests/frontend-demo.mjs
 
 # Regenerate the existing identity asset URLs after a geometry change:
 node scripts/write-brand-assets.mjs

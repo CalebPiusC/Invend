@@ -5,7 +5,7 @@ import net from 'node:net';
 import { execFileSync } from 'node:child_process';
 import pg from 'pg';
 export async function nativeDatabase() {
-  const dir = await mkdtemp(path.join(tmpdir(), 'selvora-b0-'));
+  const dir = await mkdtemp(path.join(tmpdir(), 'invend-b0-'));
   const server = net.createServer();
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   const port = server.address().port;

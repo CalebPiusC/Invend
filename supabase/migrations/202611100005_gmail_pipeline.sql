@@ -23,7 +23,7 @@ create index audit_source_fk on public.audit_log(vendor_id,source_customer_id);
 create index audit_target_fk on public.audit_log(vendor_id,target_customer_id);
 create index job_account_fk on public.jobs(vendor_id,channel_account_id);
 -- Minimal privileged routing capabilities. They return IDs only, never secrets/message content.
--- They are executable only after SET ROLE selvora_service, never by browser roles.
+-- They are executable only after SET ROLE invend_service, never by browser roles.
 create function public.b2_oauth_route(p_hash text) returns table(vendor_id uuid,attempt_id uuid) language sql security definer set search_path='' as $$
  select a.vendor_id,a.id from public.channel_attempts a where a.state_hash=p_hash and a.status='pending' and a.expires_at>now();
 $$;
@@ -34,7 +34,7 @@ create function public.b2_due_vendors(p_limit integer default 100) returns table
  select distinct j.vendor_id from public.jobs j where (j.status in ('queued','failed') and j.run_at<=now() and j.attempts<j.max_attempts) or (j.status='running' and j.locked_until<now()) limit greatest(1,least(p_limit,1000));
 $$;
 revoke all on function public.b2_oauth_route(text),public.b2_mailbox_route(text),public.b2_due_vendors(integer) from public,anon,authenticated,service_role;
-grant execute on function public.b2_oauth_route(text),public.b2_mailbox_route(text),public.b2_due_vendors(integer) to selvora_service;
+grant execute on function public.b2_oauth_route(text),public.b2_mailbox_route(text),public.b2_due_vendors(integer) to invend_service;
 -- Alias merges preserve original identities, thread/customer FKs and immutable receipts.
 create function public.b2_merge_guard() returns trigger language plpgsql set search_path='' as $$ begin
  if tg_op='UPDATE' and old.merged_into_id is distinct from new.merged_into_id and current_user='authenticated' then raise exception 'Use authorized merge transaction' using errcode='42501';end if;

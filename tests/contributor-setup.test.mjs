@@ -12,7 +12,7 @@ test('API template documents every Settings field, including intentionally unset
   for (const field of fields)
     assert.match(template, new RegExp(`^(?:# )?${field}=`, 'm'), `${field} documented`);
   assert.match(template, /^PIPELINE_ENABLED=false$/m);
-  assert.match(template, /^DATABASE_URL=postgresql:\/\/selvora_pipeline:/m);
+  assert.match(template, /^DATABASE_URL=postgresql:\/\/invend_pipeline:/m);
 });
 
 test('sample frontend template needs no account and all app env reads are documented', async () => {

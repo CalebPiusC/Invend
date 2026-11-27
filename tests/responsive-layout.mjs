@@ -9,7 +9,7 @@ try {
   const page = await browser.newPage();
   for (const width of [390, 768, 820, 1024, 1279, 1280, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
-    await page.goto(process.env.SELVORA_TEST_URL ?? 'http://localhost:3010/');
+    await page.goto(process.env.INVEND_TEST_URL ?? 'http://localhost:3010/');
     await page.getByText('40 conversations', { exact: true }).waitFor();
     const mobile = page.getByRole('navigation', { name: 'Mobile navigation', includeHidden: true });
     const sidebar = page.getByRole('complementary', {

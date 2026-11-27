@@ -141,7 +141,7 @@ async def queue_notice(
         vendor,
         cid,
         text,
-        f"<{mid}@selvora.invalid>",
+        f"<{mid}@invend.invalid>",
         json.dumps(context),
         json.dumps(template) if template else None,
     )

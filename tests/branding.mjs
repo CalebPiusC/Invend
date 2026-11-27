@@ -4,8 +4,8 @@ import { join } from 'node:path';
 import { launchBrowser } from './helpers/chromium.mjs';
 
 // Run against DATA_MODE=mock. No live account, provider, email or database is used.
-const origin = process.env.SELVORA_TEST_URL ?? 'http://localhost:3000/app';
-const artifacts = process.env.SELVORA_SCREENSHOT_DIR;
+const origin = process.env.INVEND_TEST_URL ?? 'http://localhost:3000/app';
+const artifacts = process.env.INVEND_SCREENSHOT_DIR;
 if (artifacts) await mkdir(artifacts, { recursive: true });
 // This CI Chromium runs in single-process mode; give each isolated context a fresh browser.
 for (const width of [390, 1440]) {
@@ -30,7 +30,7 @@ for (const width of [390, 1440]) {
     };
     const check = async (surface, hasSymbol = true) => {
       assert.doesNotMatch(await page.locator('body').innerText(), /selvora/i, surface);
-      assert.doesNotMatch(await page.title(), /selvora/i, surface);
+      assert.match(await page.title(), /Invend/, surface);
       const names = await page
         .locator('[aria-label], [alt], [title]')
         .evaluateAll((elements) =>
@@ -57,13 +57,16 @@ for (const width of [390, 1440]) {
     await page.evaluate(async () => {
       await (
         await caches.open('selvora-static-v1')
-      ).put('/offline.html', new Response('<title>Selvora — Offline</title>Old offline copy'));
+      ).put('/offline.html', new Response('<title>Invend — Offline</title>Old offline copy'));
       await (
         await caches.open('selvora-static-v3')
       ).put('/invend-icon-192.png', new Response('previous bag icon'));
       await (
         await caches.open('selvora-static-v4')
       ).put('/invend-icon-192.png', new Response('previous cart-first icon'));
+      await (
+        await caches.open('selvora-static-v5')
+      ).put('/invend-icon-192.png', new Response('legacy selvora namespace icon'));
       await (await caches.open('unrelated-test-cache')).put('/unrelated', new Response('keep'));
     });
     await goto('/');
@@ -89,7 +92,7 @@ for (const width of [390, 1440]) {
     assert.match(await page.title(), /Invend/);
     await check('sign-in');
     await page.getByRole('button', { name: 'Switch to dark mode' }).click();
-    assert.equal(await page.evaluate(() => localStorage.getItem('selvora-theme')), 'dark');
+    assert.equal(await page.evaluate(() => localStorage.getItem('invend-theme')), 'dark');
     await goto('/app?auth=sign-in');
     await page.waitForFunction(() => document.documentElement.classList.contains('dark'));
     await check('sign-in-dark');
@@ -142,17 +145,14 @@ for (const width of [390, 1440]) {
     await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
     const cachesState = await page.evaluate(async () => {
       const names = await caches.keys();
-      const cache = await caches.open('selvora-static-v5');
+      const cache = await caches.open('invend-static-v6');
       return {
         names,
         urls: (await cache.keys()).map((request) => new URL(request.url).pathname).sort(),
       };
     });
-    assert.ok(!cachesState.names.includes('selvora-static-v1'));
-    assert.ok(!cachesState.names.includes('selvora-static-v2'));
-    assert.ok(!cachesState.names.includes('selvora-static-v3'));
-    assert.ok(!cachesState.names.includes('selvora-static-v4'));
-    assert.ok(cachesState.names.includes('selvora-static-v5'));
+    assert.ok(cachesState.names.includes('invend-static-v6'));
+    assert.ok(!cachesState.names.some((name) => /selvora/i.test(name)), 'legacy caches evicted');
     assert.ok(cachesState.names.includes('unrelated-test-cache'));
     assert.deepEqual(cachesState.urls, ['/invend-icon-192.png', '/offline.html']);
     for (const asset of [

@@ -12,12 +12,12 @@ create table public.ai_cost_entries(id uuid primary key default gen_random_uuid(
 do $$declare t text;begin foreach t in array array['billing_checkouts','billing_payments','ai_cost_entries'] loop
  execute format('alter table public.%I enable row level security',t);execute format('alter table public.%I force row level security',t);
  execute format('revoke all on public.%I from public,anon,authenticated,service_role',t);
- execute format('grant select,insert on public.%I to selvora_service',t);
- execute format('create policy worker_r on public.%I for select to selvora_service using(public.service_vendor(vendor_id))',t);
- execute format('create policy worker_i on public.%I for insert to selvora_service with check(public.service_vendor(vendor_id))',t);
+ execute format('grant select,insert on public.%I to invend_service',t);
+ execute format('create policy worker_r on public.%I for select to invend_service using(public.service_vendor(vendor_id))',t);
+ execute format('create policy worker_i on public.%I for insert to invend_service with check(public.service_vendor(vendor_id))',t);
  end loop;end$$;
-grant update on public.billing_checkouts to selvora_service;
-create policy worker_u on public.billing_checkouts for update to selvora_service using(public.service_vendor(vendor_id)) with check(public.service_vendor(vendor_id));
+grant update on public.billing_checkouts to invend_service;
+create policy worker_u on public.billing_checkouts for update to invend_service using(public.service_vendor(vendor_id)) with check(public.service_vendor(vendor_id));
 create trigger immutable_payment before update or delete on public.billing_payments for each row execute function public.prevent_receipt_mutation();
 create trigger immutable_cost before update or delete on public.ai_cost_entries for each row execute function public.prevent_receipt_mutation();
 alter table public.jobs add column billing_checkout_id uuid;
@@ -26,7 +26,7 @@ create index billing_job_checkout on public.jobs(vendor_id,billing_checkout_id);
 alter table public.jobs drop constraint jobs_kind_check;
 alter table public.jobs add constraint jobs_kind_check check(kind in ('ingest','send','holding_reply','followup','restock','payment','receipt','usage','invitation_email','channel_refresh','cleanup','gmail_sync','gmail_watch','reservation_expiry','takeover_timeout','reply','checkout','order_message','refund','translation','billing_payment'));
 create function public.b8_billing_route(ref text) returns table(vendor_id uuid,checkout_id uuid) language sql security definer set search_path='' as $$select c.vendor_id,c.id from public.billing_checkouts c where c.reference=ref limit 1$$;
-revoke all on function public.b8_billing_route(text) from public,anon,authenticated,service_role;grant execute on function public.b8_billing_route(text) to selvora_service;
+revoke all on function public.b8_billing_route(text) from public,anon,authenticated,service_role;grant execute on function public.b8_billing_route(text) to invend_service;
 -- Event snapshots do not change when catalogue names/prices or message statuses change later.
 alter table public.domain_events add column sender text,add column channel text,add column line_items jsonb;
 create function public.b8_event_snapshot() returns trigger language plpgsql set search_path='' as $$begin
@@ -40,5 +40,5 @@ create function public.b8_renewal_route(customer_code text, plan text) returns t
  select c.vendor_id,c.id from candidates c where (select count(*) from candidates)=1;
 $$;
 revoke all on function public.b8_renewal_route(text,text) from public,anon,authenticated,service_role;
-grant execute on function public.b8_renewal_route(text,text) to selvora_service;
+grant execute on function public.b8_renewal_route(text,text) to invend_service;
 commit;

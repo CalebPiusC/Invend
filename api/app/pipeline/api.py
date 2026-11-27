@@ -266,7 +266,7 @@ async def send(
             vendor,
             c["id"],
             text,
-            f"<{mid}@selvora.invalid>",
+            f"<{mid}@invend.invalid>",
             parent["email_subject"] if parent else "Your enquiry",
         )
         await conn.execute(

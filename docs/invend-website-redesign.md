@@ -6,7 +6,7 @@ The public marketing experience has been redesigned without rebuilding the appli
 
 ## 1. Scope and initial audit
 
-Work is restricted to the public marketing experience, its shared brand assets and relevant tests. Existing application behaviour, auth, onboarding, APIs, schemas and business rules are preserved. The baseline records 355 existing files on `arena/eb88ea34-selvora` at `b03c8f04e288acd3ff3a62a0796ae2a0b6ee7ca7`. The 19 protected historical audit/design documents remain untouched and untracked.
+Work is restricted to the public marketing experience, its shared brand assets and relevant tests. Existing application behaviour, auth, onboarding, APIs, schemas and business rules are preserved. The baseline records 355 existing files on `arena/eb88ea34-invend` at `b03c8f04e288acd3ff3a62a0796ae2a0b6ee7ca7`. The 19 protected historical audit/design documents remain untouched and untracked.
 
 ### Architecture
 
@@ -94,7 +94,7 @@ The laptop, workflow and receipt now share `Tola’s everyday store` and `INV-DE
 
 Regenerated horizontal/inverse wordmarks, compact/symbol SVGs, SVG/ICO favicon, Apple touch icon, 192/512px install icons and retained legacy asset aliases. The outlined wordmark requires no installed font. The shared mark uses chat lines, a speech tail, cart wheels and restrained gold detail; install assets have mask-safe padding.
 
-The service worker cache advances to `selvora-static-v4`. The technical namespace, manifest identity/scope/start URL, existing application theme/background and offline retry behaviour remain intact. Cache-upgrade tests verify eviction of old Invend caches without deleting another app's cache, and private application pages remain uncached.
+The service worker cache advances to `invend-static-v4`. The technical namespace, manifest identity/scope/start URL, existing application theme/background and offline retry behaviour remain intact. Cache-upgrade tests verify eviction of old Invend caches without deleting another app's cache, and private application pages remain uncached.
 
 No new image generation or external image request is required for the laptop. The existing, labelled AI-generated sample tote is a 40,576-byte WebP, reused with explicit dimensions and lazy loading. Static page composition remains server-rendered; client behaviour is limited to navigation and interactive examples. No new libraries or tenant/API dependencies were introduced.
 
@@ -161,17 +161,17 @@ One final unit run executed concurrently with browser work exceeded the existing
 Use the already-running production verification server for the browser suites:
 
 ```bash
-SELVORA_HOME_URL=http://localhost:3001/ \
-  SELVORA_SCREENSHOT_DIR=.next/invend-website-redesign/production \
+INVEND_HOME_URL=http://localhost:3001/ \
+  INVEND_SCREENSHOT_DIR=.next/invend-website-redesign/production \
   node tests/homepage.mjs
 
-SELVORA_TEST_URL=http://localhost:3001/app \
-  SELVORA_SCREENSHOT_DIR=.next/invend-website-redesign/production-brand \
+INVEND_TEST_URL=http://localhost:3001/app \
+  INVEND_SCREENSHOT_DIR=.next/invend-website-redesign/production-brand \
   node tests/branding.mjs
-SELVORA_TEST_URL=http://localhost:3001/app \
-  SELVORA_SCREENSHOT_DIR=.next/invend-website-redesign/production-onboarding \
+INVEND_TEST_URL=http://localhost:3001/app \
+  INVEND_SCREENSHOT_DIR=.next/invend-website-redesign/production-onboarding \
   node tests/onboarding.mjs
-SELVORA_TEST_URL=http://localhost:3001/app node tests/frontend-demo.mjs
+INVEND_TEST_URL=http://localhost:3001/app node tests/frontend-demo.mjs
 ```
 
 Transient local evidence is under `.next/invend-website-redesign/`: `production/`, `production-brand/`, `production-onboarding/`, `visual/`, `header-regression/`, `production-build.log`, `production-browser.log`, `production-regressions.log`, `frontend-final.log`, `frontend-concurrent-timeout.log`, `onboarding-db.log` and `scope-audit.json`. This ignored directory is not a published or durable evidence archive; tests can regenerate it. This report and source/tests are the durable handoff.
@@ -184,7 +184,7 @@ The final SHA-256 audit against the 355-file pre-redesign baseline found:
 - **10 new redesign files**: eight marketing component/CSS files, retained-demo tests and this report.
 - **327 baseline files unchanged**, including the pre-existing onboarding/backend/application changes and all **19 protected historical documents**.
 - Protected documents still untracked; no unrelated additions/deletions; index empty.
-- Branch remains `arena/eb88ea34-selvora`; HEAD remains `b03c8f04e288acd3ff3a62a0796ae2a0b6ee7ca7`.
+- Branch remains `arena/eb88ea34-invend`; HEAD remains `b03c8f04e288acd3ff3a62a0796ae2a0b6ee7ca7`.
 
 The cumulative worktree also contains the onboarding work that was present before this task. Those existing changes must not be mistaken for marketing-driven API/schema edits. No commit, push, pull request, merge, branch switch, history rewrite, database deployment or modification to main/draft PR #3 was performed for this redesign.
 

@@ -11,7 +11,7 @@ ALLOWED = {
     "rate_limited",
     "rate_store_unavailable",
 }
-logger = logging.getLogger("selvora.operations")
+logger = logging.getLogger("invend.operations")
 
 
 def event(code):
@@ -23,7 +23,7 @@ def event(code):
 class SafeFormatter(logging.Formatter):
     def format(self, record):
         code = "runtime_event"
-        if record.name == "selvora.operations":
+        if record.name == "invend.operations":
             try:
                 candidate = json.loads(record.msg).get("event")
                 if candidate in ALLOWED:

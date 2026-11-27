@@ -6,7 +6,7 @@ alter table public.payments add column currency text not null default 'NGN' chec
 alter table public.receipt_shares add column token_ciphertext bytea, add column key_version text;
 create function public.b4_payment_route(p_reference text) returns table(vendor_id uuid,order_id uuid) language sql security definer set search_path='' as $$select o.vendor_id,o.id from public.orders o where o.checkout_reference=p_reference$$;
 revoke all on function public.b4_payment_route(text) from public,anon,authenticated,service_role;
-grant execute on function public.b4_payment_route(text) to selvora_service;
+grant execute on function public.b4_payment_route(text) to invend_service;
 -- Legacy browser payment RPC bypasses the explicit bank confirmation and stock transaction.
 revoke execute on function public.confirm_vendor_payment(uuid,uuid),public.issue_receipt(uuid,uuid) from authenticated;
 create function public.b4_order_guard() returns trigger language plpgsql set search_path='' as $$begin

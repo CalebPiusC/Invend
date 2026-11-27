@@ -42,14 +42,14 @@ class Queue:
 
     async def wake(self, vendor):
         try:
-            await self.redis.lpush("selvora:job-vendors", str(vendor))
-            await self.redis.ltrim("selvora:job-vendors", 0, 9999)
+            await self.redis.lpush("invend:job-vendors", str(vendor))
+            await self.redis.ltrim("invend:job-vendors", 0, 9999)
         except (RedisError, OSError):
             return  # DB scan recovers missed hints, including Redis restarts.
 
     async def next_vendor(self):
         try:
-            row = await self.redis.brpop("selvora:job-vendors", timeout=1)
+            row = await self.redis.brpop("invend:job-vendors", timeout=1)
             return row[1].decode() if row else None
         except (RedisError, OSError):
             return None

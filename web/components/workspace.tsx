@@ -10,6 +10,13 @@ import { OnboardingScreen } from './onboarding-screen';
 import { AppShell } from './app-shell';
 import { BrandIcon } from './brand-icon';
 import { useDataClient } from './data/provider';
+// One-time read of the pre-rename preference key so saved themes survive the rename.
+function legacyTheme() {
+  const value = localStorage.getItem('selvora-theme');
+  if (value) localStorage.removeItem('selvora-theme');
+  return value;
+}
+
 export function Workspace({ initialSignUp = true }: { initialSignUp?: boolean } = {}) {
   const { client, preferences, configureVendor } = useDataClient();
   const sample = client.mode === 'mock';
@@ -43,7 +50,9 @@ export function Workspace({ initialSignUp = true }: { initialSignUp?: boolean } 
   const [install, setInstall] = useState<InstallEvent | null>(null);
   const [preview, setPreview] = useState(false);
   useEffect(() => {
-    const saved = sample ? preferences.darkMode : localStorage.getItem('selvora-theme') === 'dark';
+    const saved = sample
+      ? preferences.darkMode
+      : (localStorage.getItem('invend-theme') ?? legacyTheme()) === 'dark';
     setDark(saved);
     document.documentElement.classList.toggle('dark', saved);
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -119,7 +128,8 @@ export function Workspace({ initialSignUp = true }: { initialSignUp?: boolean } 
     }
     setDark(!dark);
     document.documentElement.classList.toggle('dark', !dark);
-    localStorage.setItem('selvora-theme', !dark ? 'dark' : 'light');
+    localStorage.setItem('invend-theme', !dark ? 'dark' : 'light');
+    localStorage.removeItem('selvora-theme');
   };
   async function authenticate(google = false) {
     setError('');

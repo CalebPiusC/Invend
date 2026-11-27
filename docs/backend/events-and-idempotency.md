@@ -44,7 +44,7 @@ reservations, sends, approvals and provider connection operations. A missing/inv
    actor_scope from stable authenticated user or trusted worker identity, never arbitrary body values.
 2. Canonicalize method + normalized path/resource + allowlisted body + relevant revision; hash it.
    HMAC the key with a server secret. Do not hash unstable JSON key ordering or log the key/body.
-3. Begin DB transaction, SET LOCAL ROLE selvora_service and SET LOCAL app.vendor_id. Insert
+3. Begin DB transaction, SET LOCAL ROLE invend_service and SET LOCAL app.vendor_id. Insert
    `(vendor_id,actor_scope,operation,key_hash,request_hash,status=in_progress,expires_at)` using the
    unique constraint. Concurrent duplicate insert waits for the winner’s transaction.
 4. On conflict, lock/read the existing row. Different request_hash → 409 CONFLICT. Same completed

@@ -32,7 +32,7 @@
 
 ## Reproducible bundle / connection check
 
-`SELVORA_TEST_URL=http://localhost:3001 npm run test:performance` measures actual JS responses
+`INVEND_TEST_URL=http://localhost:3001 npm run test:performance` measures actual JS responses
 requested before the inbox is ready, recompresses them with gzip for a comparable budget,
 then proves Insights fetches a new screen chunk and Catalogue opens. No dev-server figures.
 Initial JS budget: **280 KiB gzip**. Synthetic conditions: cold cache, 500 kbps download,

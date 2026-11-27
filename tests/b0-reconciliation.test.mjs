@@ -49,7 +49,7 @@ test('all tables have forced RLS; no public/anon/service_role privileges and no 
       );
   }
   assert.equal(
-    (await db.query("select rolbypassrls from pg_roles where rolname='selvora_service'")).rows[0]
+    (await db.query("select rolbypassrls from pg_roles where rolname='invend_service'")).rows[0]
       .rolbypassrls,
     false,
   );
@@ -113,7 +113,7 @@ test('every composite FK rejects a cross-tenant parent, including matching vendo
 test('scoped worker cannot read any tenant until scope is explicitly selected', async () => {
   await db.exec('begin');
   try {
-    await db.exec("set local role selvora_service;set local app.vendor_id=''");
+    await db.exec("set local role invend_service;set local app.vendor_id=''");
     for (const table of Object.keys(matrix))
       assert.equal((await db.query(`select * from public.${table}`)).rows.length, 0);
   } finally {

@@ -5,7 +5,7 @@ export async function matrixCheck(db, matrix, fixture, other, table, role, op) {
   const allowed = matrix[table][role].includes(op);
   const row = await prepareProbe(db, fixture, table, role, op);
   await db.query(
-    role === 'service' ? 'set local role selvora_service' : 'set local role authenticated',
+    role === 'service' ? 'set local role invend_service' : 'set local role authenticated',
   );
   await db.query(
     "select set_config('request.jwt.claim.sub',$1,true),set_config('request.jwt.claims',$2,true),set_config('app.vendor_id',$3,true)",

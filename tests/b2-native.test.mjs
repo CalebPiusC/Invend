@@ -15,7 +15,7 @@ test('B2 PostgreSQL + Redis: tenant APIs, duplicate history and worker kill/rest
     const own = await b0Fixture(server.pool, matrix);
     const other = await b0Fixture(server.pool, matrix);
     await server.pool.query(
-      'CREATE ROLE b2_runner LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT selvora_service TO b2_runner',
+      'CREATE ROLE b2_runner LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT invend_service TO b2_runner',
     );
     const result = await promisify(execFile)('.venv/bin/python', ['tests/helpers/b2-runtime.py'], {
       env: {

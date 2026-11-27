@@ -34,8 +34,8 @@ Build/start a **mock-mode** workspace, then run:
 npm run build
 npm run start -w web -- --port 3010
 # In another terminal:
-SELVORA_TEST_URL=http://localhost:3010 npm run test:layout
-SELVORA_TEST_URL=http://localhost:3010 npm run test:a11y
+INVEND_TEST_URL=http://localhost:3010 npm run test:layout
+INVEND_TEST_URL=http://localhost:3010 npm run test:a11y
 ```
 
 `test:layout` uses Playwright and the existing bundled Chromium helper. It checks

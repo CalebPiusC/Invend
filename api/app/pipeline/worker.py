@@ -548,7 +548,7 @@ class Worker:
                 job["vendor_id"],
                 c["id"],
                 text,
-                f"<{job['id']}@selvora.invalid>",
+                f"<{job['id']}@invend.invalid>",
                 parent["email_subject"] if parent else "Your enquiry",
             )
             await conn.execute(

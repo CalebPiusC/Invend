@@ -38,7 +38,7 @@ async def queue(conn, vendor, cid, text, order, collection=False):
         vendor,
         cid,
         text,
-        f"<{mid}@selvora.invalid>",
+        f"<{mid}@invend.invalid>",
         parent["email_subject"] if parent else "Your order",
         json.dumps(context),
     )

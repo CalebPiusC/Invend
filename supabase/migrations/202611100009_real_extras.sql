@@ -40,7 +40,7 @@ create function public.b7_invite_route(p_hash text) returns table(vendor_id uuid
  select i.vendor_id,i.id from public.team_invitations i join public.invitation_secrets s on s.vendor_id=i.vendor_id and s.invitation_id=i.id join public.vendors v on v.id=i.vendor_id where s.token_hash=p_hash and i.status in ('pending','accepted') and i.expires_at>now() and v.deletion_requested_at is null limit 1;
 $$;
 revoke all on function public.b7_invite_route(text) from public,anon,authenticated,service_role;
-grant execute on function public.b7_invite_route(text) to selvora_service;
+grant execute on function public.b7_invite_route(text) to invend_service;
 -- Persist notification history at its source; no in-memory reconstruction.
 create function public.b7_notify() returns trigger language plpgsql set search_path='' as $$begin
  if tg_table_name='approvals' then

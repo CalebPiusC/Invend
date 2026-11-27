@@ -65,7 +65,7 @@ are involved. Keep the tab open: refresh resets the sample session.
 
 ## Repeatable checks
 
-With the mock server running, run `SELVORA_TEST_URL=http://localhost:3001 npm run test:ui`.
+With the mock server running, run `INVEND_TEST_URL=http://localhost:3001 npm run test:ui`.
 This uses real Playwright-controlled Chromium: the complete demo, four regression journeys,
 light/dark axe scans, and synthetic slow-network/CPU checks. Unit/release checks:
 `npm run test:all && npm run build`. Backend integrations remain paused.

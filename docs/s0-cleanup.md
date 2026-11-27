@@ -20,19 +20,52 @@
 
 ## Legacy-brand rename audit
 
-Tracked code/docs search before cleanup found only test artifact locations:
+Two earlier rename passes are recorded here. The first renamed the original internal
+codename to the interim name; the second (current) pass removed the interim name
+entirely so the product is only ever called **Invend**.
 
-- `tests/insights-mobile.mjs`: `/tmp/sift-f6` → `/tmp/selvora-f6`.
-- `tests/restore-native.test.mjs`: temporary prefix `sift-restore-` → `selvora-restore-`.
+### Pass 2 — interim name → Invend (complete)
 
-No database/schema identifiers, encryption contexts, provider references, receipts,
-customer history or committed historical snapshots were rewritten. Remaining
-legacy-name mentions in this document intentionally record this rename audit.
+`selvora` no longer appears anywhere in tracked source, tests, scripts, migrations,
+configuration or docs. No compatibility alias is kept for brand-facing strings:
 
-The assigned branch `arena/720fa19c-sift` and checkout directory `/home/user/Sift`
-retain the old name: Arena fixes branch identity and the checkout root must not be
-renamed. Historical commit objects/PR URLs are immutable evidence, not branding.
-The configured GitHub remote is already `CalebPiusC/selvora`.
+- Package/workspace names: `selvora` → `invend`, `@selvora/web` → `@invend/web`,
+  `selvora-api` → `invend-api`.
+- Database and infrastructure identifiers: PostgreSQL role `selvora_service` →
+  `invend_service`, login `selvora_pipeline` → `invend_pipeline`, Compose database
+  and user `selvora` → `invend`, backup pg service `selvora_backup` → `invend_backup`.
+  Migrations are edited in place; there is no separate compatibility migration
+  because no production database exists yet.
+- Redis key namespaces: `selvora:*` → `invend:*`.
+- User-visible identifiers that migrate safely in code: the theme preference key
+  `selvora-theme` → `invend-theme`, and the service-worker cache namespace
+  `selvora-static-*` → `invend-static-v6` (activation evicts every legacy
+  `selvora-static-*` and `invend-static-v5` cache).
+- Generated Message-ID domains: `*@selvora.invalid` → `*@invend.invalid`.
+- Internal logger name, SVG asset (`web/public/selvora-mark.svg` →
+  `invend-mark.svg`), temporary directories and screenshot artifact paths.
+- Test environment variables: `SELVORA_TEST_URL`, `SELVORA_HOME_URL`,
+  `SELVORA_SCREENSHOT_DIR`, `SELVORA_*_WIDTHS` → `INVEND_*` equivalents.
+- Branding assertions that used the interim name as the forbidden string now
+  forbid the original codename and positively expect Invend.
+
+Deliberate exceptions, documented rather than renamed:
+
+- The historical names above appear only in this audit and in test fixtures that
+  prove legacy service-worker caches are evicted and the theme key still migrates.
+- Historical commit objects, branch names and PR URLs are immutable evidence.
+  This document's own earlier pass-1 note about `arena/720fa19c-sift` and
+  `/home/user/Sift` is retained as history.
+- The checkout root `/home/user/Invend` and branch name are fixed by Arena and
+  must not be renamed.
+
+### Pass 1 — original codename → interim name
+
+- `tests/insights-mobile.mjs`: `/tmp/sift-f6` → `/tmp/invend-f6`.
+- `tests/restore-native.test.mjs`: temporary prefix `sift-restore-` → `invend-restore-`.
+
+No customer history, receipts, provider references or encryption contexts were
+rewritten, because none were keyed on the brand name.
 
 ## Unfinished — not silently included in S0
 

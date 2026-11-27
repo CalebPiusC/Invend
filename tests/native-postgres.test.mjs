@@ -37,7 +37,7 @@ before(async () => {
       s.close(() => resolve(p));
     });
   });
-  dir = await mkdtemp(path.join(tmpdir(), 'selvora-pg-'));
+  dir = await mkdtemp(path.join(tmpdir(), 'invend-pg-'));
   const password = randomUUID();
   const platform = process.platform === 'win32' ? 'windows' : process.platform;
   const bin = await import(`@embedded-postgres/${platform}-${process.arch}`);

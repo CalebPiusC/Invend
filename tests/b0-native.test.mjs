@@ -108,7 +108,7 @@ test('concurrent native reservations cannot oversubscribe variant inventory', as
         const c = await server.pool.connect();
         try {
           await c.query('begin');
-          await c.query('set local role selvora_service');
+          await c.query('set local role invend_service');
           await c.query("select set_config('app.vendor_id',$1,true)", [f.vendor]);
           await c.query(
             "insert into stock_reservations(vendor_id,order_id,order_item_id,product_id,variant_id,quantity,expires_at) values($1,$2,$3,$4,$5,1,now()+interval '10 minutes')",

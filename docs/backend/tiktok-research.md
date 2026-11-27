@@ -3,7 +3,7 @@
 > Current status authority: [status matrix](../status-matrix.md). This phase/design guide is technical context, not independent release sign-off.
 
 Research date: 10 November 2026. This is a feasibility report, not evidence that
-Selvora or any vendor has TikTok approval. No B6 application code has been written.
+Invend or any vendor has TikTok approval. No B6 application code has been written.
 
 ## Finding
 
@@ -15,7 +15,7 @@ an organic-to-paid approach—not a blanket paid-ads-only limitation. [1][2][3]
 
 Ordinary Login Kit / Display API / content-posting access must not be mistaken for
 Business Messaging permission. Meta approval does not establish TikTok entitlement.
-Until separately approved and verified, Selvora must advertise TikTok as unavailable
+Until separately approved and verified, Invend must advertise TikTok as unavailable
 for in-app messaging, not connected or AI-reply enabled. [1]
 
 ## Eligibility and approvals
@@ -35,7 +35,7 @@ Official access documentation states: [1]
 - TikTok Shop messages are a separate system; Business Messaging authorization does
   not grant access to Shop customer messages.
 
-Before promising support, verify Selvora's approved product/scopes and each vendor's
+Before promising support, verify Invend's approved product/scopes and each vendor's
 actual account entitlement/registration region. The API reference includes an account
 capability check; OAuth success alone is not proof that messaging will work. [1][2]
 
@@ -54,7 +54,7 @@ integration as48hours with at most10consecutive messages until the contact repli
 without exposing the same full post-window allowance. [5] Do not copy one generic
 WhatsApp/Meta window rule into a TikTok adapter, and do not implement the more permissive
 exception from a secondary summary alone. Confirm the exact official limits and
-capability responses available to Selvora at integration time; default to blocking
+capability responses available to Invend at integration time; default to blocking
 outside a verified permitted window. The current official portal lists the messaging
 limits guide, but the full guide's current rules were not independently retrieved in
 this research. No TikTok send-policy code is being shipped from these summaries.
@@ -66,12 +66,12 @@ this research. No TikTok send-policy code is being shipped from these summaries.
   contractual guarantee of free direct API access.** [1][2][3]
 - respond.io explicitly says TikTok Business Messaging can be used for free within
   its channel documentation. That is useful partner evidence, not a binding TikTok
-  price for Selvora's own integration. [5]
+  price for Invend's own integration. [5]
 - A partner route may add subscriptions, seats, contact-based usage, integration/API
   plan requirements or a negotiated commercial agreement. Obtain a written quote
-  that explicitly permits embedding/reselling in Selvora; a retail team inbox plan
+  that explicitly permits embedding/reselling in Invend; a retail team inbox plan
   does not by itself establish that right. No unverified subscription price is used
-  as Selvora's budget here.
+  as Invend's budget here.
 - Direct integration still has engineering, security-review, hosting, storage,
   monitoring and AI-inference costs. Ads, if used, are a separate budget; the official
   overview does not establish that paid ads are required for all messaging. [3]
@@ -87,13 +87,13 @@ Do not quote zero total cost or any naira conversion on current evidence.
 Apply/verify Business Messaging approval; verify eligible vendor accounts and current
 send rules; obtain commercial terms; then implement official OAuth, webhooks,
 conversation capability checks, the sandbox boundary and real acceptance tests.
-This gives the best architectural fit with Selvora's adapter/engine but has an
+This gives the best architectural fit with Invend's adapter/engine but has an
 unconfirmed approval timeline. We must not represent the API as unavailable in
-principle, or already available to Selvora.
+principle, or already available to Invend.
 
 ### B — Approved messaging partner
 
-Evaluate a provider with authorized TikTok messaging and an API suitable for Selvora.
+Evaluate a provider with authorized TikTok messaging and an API suitable for Invend.
 Confirm vendor coverage, current limits, commercial/reseller rights, data handling,
 export/deletion and account ownership. Obtain a quote before implementation. Approval
 and provider support still need verification; this is not a guaranteed shortcut.
@@ -105,7 +105,7 @@ access remains unverified. Do not mark it connected or enable in-app sending. Us
 validated HTTPS TikTok profile/inbox destination and label whether it opens a generic
 inbox or an exact thread; never manufacture an exact customer-thread URL.
 
-Without authorized inbound events, Selvora cannot detect new TikTok DMs. Therefore:
+Without authorized inbound events, Invend cannot detect new TikTok DMs. Therefore:
 
 - Do not fabricate incoming conversations, unread counts, alerts or delivery states.
 - The notification part can only be a vendor-created reminder/manual task (or a
@@ -114,7 +114,7 @@ Without authorized inbound events, Selvora cannot detect new TikTok DMs. Therefo
 - No browser scraping, password collection, session-cookie use, unofficial automation
   or bypass of approval/region restrictions.
 
-This fallback is justified by **unverified access for Selvora**, not a false claim
+This fallback is justified by **unverified access for Invend**, not a false claim
 that TikTok has no reply API. It must be an explicit product choice before coding.
 
 ## B6 scope after the decision

@@ -49,7 +49,7 @@ class Codes:
     def __init__(self, redis, crypto, clock=time.time):
         self.redis, self.crypto, self.clock = redis, crypto, clock
         # Shared hash tag keeps Lua keys in one Redis Cluster slot.
-        self.prefix = "selvora:{wa-codes}:"
+        self.prefix = "invend:{wa-codes}:"
 
     async def issue(self, vendor, member):
         owner = self.crypto.digest("wa-code-owner", str(vendor) + ":" + str(member))

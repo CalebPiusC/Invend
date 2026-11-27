@@ -5,7 +5,7 @@ umask 077
 : "${PGSERVICE:?Configure a restricted backup service in a protected pg_service.conf}"
 : "${BACKUP_DIR:?Use encrypted storage outside the checkout}"
 mkdir -p "$BACKUP_DIR"
-file="$BACKUP_DIR/selvora-$(date -u +%Y%m%dT%H%M%SZ).dump"
+file="$BACKUP_DIR/invend-$(date -u +%Y%m%dT%H%M%SZ).dump"
 pg_dump --format=custom --file="$file.partial"
 pg_restore --list "$file.partial" >/dev/null
 mv "$file.partial" "$file"

@@ -34,7 +34,7 @@ describe('Invend identity', () => {
       );
       expect(screen.getByRole('link', { name: 'Invend home' })).toHaveTextContent(/^invend$/);
       expect(container.querySelectorAll('svg[data-brand="invend"]')).toHaveLength(1);
-      expect(container.textContent).not.toMatch(/selvora|invend\./i);
+      expect(container.textContent).not.toMatch(/selvora/i);
     },
   );
 

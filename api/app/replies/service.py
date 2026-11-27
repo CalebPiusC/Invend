@@ -76,7 +76,7 @@ async def queue_reply(conn, vendor, inbound, text, sheet, *, approval=None):
         vendor,
         c["id"],
         text,
-        f"<{mid}@selvora.invalid>",
+        f"<{mid}@invend.invalid>",
         inbound["email_subject"] or "Your enquiry",
         json.dumps(context),
         inbound["id"],
