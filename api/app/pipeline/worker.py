@@ -23,6 +23,7 @@ from .crypto import Crypto
 from .db import Database
 from .ingest import ingest
 from .jobs import Queue, backoff, claim, enqueue
+from .kinds import SUPPORTED_KINDS
 from .tokens import adapter_for
 
 
@@ -54,6 +55,11 @@ class Worker:
             "translation": lambda job: providers.translation(self, job),
             "invitation_email": lambda job: providers.invitation(self, job),
         }
+        # Single source of truth: handlers and claim allowlist must match.
+        if set(self.handlers) != set(SUPPORTED_KINDS):
+            raise RuntimeError(
+                f"Handler registry drift: handlers={sorted(self.handlers)} vs SUPPORTED_KINDS={sorted(SUPPORTED_KINDS)}"
+            )
 
     async def heartbeat(self, job):
         while True:

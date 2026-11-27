@@ -150,6 +150,10 @@ async def main():
         from b9_checks import run as b9_checks
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url='https://test',headers=headers) as client:
             await b9_checks(rt,worker,vendor,account,client,execute)
+        from b10_claim_checks import run as b10_claim_checks
+        other_vendor = UUID(fixtures['other']['vendor'])
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url='https://test',headers=headers) as client:
+            await b10_claim_checks(rt,worker,vendor,account,client,execute, other_vendor)
         print('B2 native APIs, dedupe, out-of-order, tenant isolation, idempotency, durable lease kill/restart and Redis checks passed')
     finally:
         await rt.queue.close()

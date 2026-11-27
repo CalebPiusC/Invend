@@ -108,14 +108,65 @@ async def backlog(rt: RuntimeDep, user: UserDep):
     operator(rt.settings, user)
     async with rt.db.transaction() as (conn, _):
         row = await conn.fetchrow("SELECT * FROM b9_backlog()")
+        # Per-kind breakdown without payloads/customer data; operator visibility only.
+        by_kind = await conn.fetch(
+            """
+            SELECT kind, status,
+                   count(*)::bigint AS count,
+                   extract(epoch from now() - min(run_at))::bigint AS oldest_seconds,
+                   coalesce(max(attempts),0)::int AS max_attempts
+            FROM jobs
+            WHERE status IN ('queued','failed','dead','running')
+            GROUP BY kind, status
+            ORDER BY kind, status
+            """
+        )
+        stuck = await conn.fetchval(
+            "SELECT count(*)::bigint FROM jobs WHERE status='running' AND locked_until < now()"
+        )
+        long_queued = await conn.fetch(
+            """
+            SELECT kind, count(*)::bigint AS count,
+                   extract(epoch from now() - min(run_at))::bigint AS oldest_seconds
+            FROM jobs
+            WHERE status IN ('queued','failed') AND run_at < now() - make_interval(secs=>$1)
+            GROUP BY kind ORDER BY kind
+            """,
+            rt.settings.queue_alert_seconds,
+        )
+        repeatedly_failing = await conn.fetch(
+            """
+            SELECT kind, count(*)::bigint AS count,
+                   coalesce(max(attempts),0)::int AS max_attempts
+            FROM jobs
+            WHERE status='failed'
+            GROUP BY kind ORDER BY kind
+            """
+        )
+        abandoned = await conn.fetchval(
+            "SELECT count(*)::bigint FROM jobs WHERE status IN ('queued','failed') AND run_at < now() - make_interval(secs=>$1) AND attempts > 0",
+            rt.settings.queue_alert_seconds * 3,
+        )
     alert = bool(
         row["dead"]
         or row["oldest_seconds"] > rt.settings.queue_alert_seconds
         or row["worker_age_seconds"] is None
         or row["worker_age_seconds"] > rt.settings.queue_alert_seconds
+        or stuck
+        or long_queued
     )
     if alert:
         from .telemetry import event
 
         event("queue_backlog")
-    return ok({**dict(row), "alert": alert})
+    return ok(
+        {
+            **dict(row),
+            "alert": alert,
+            "byKind": [dict(r) for r in by_kind],
+            "stuckCount": stuck,
+            "longQueuedByKind": [dict(r) for r in long_queued],
+            "repeatedlyFailingByKind": [dict(r) for r in repeatedly_failing],
+            "abandonedCount": abandoned,
+        }
+    )
