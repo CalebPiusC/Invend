@@ -3,12 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 import sharp from 'sharp';
-import {
-  INVEND_BAG_PATH,
-  INVEND_CHARCOAL,
-  INVEND_GOLD,
-  INVEND_HANDLE_PATH,
-} from '../web/lib/brand-mark.ts';
+import { INVEND_CHAT_CART_PATH, INVEND_CHARCOAL, INVEND_EMERALD } from '../web/lib/brand-mark.ts';
 
 const publicFile = (name) => readFile(`web/public/${name}`);
 
@@ -36,7 +31,7 @@ test('Invend manifest keeps the installed identity, colours, scope and workspace
   assert.match(manifest.icons.find((i) => i.sizes === '512x512').purpose, /maskable/);
 });
 
-test('scalable logo variants and legacy SVG URLs share the new geometry, not a raster or old mark', async () => {
+test('scalable logo variants and legacy SVG URLs share one message-first path, not a raster or detached cart', async () => {
   for (const name of [
     'invend-logo.svg',
     'invend-logo-inverse.svg',
@@ -47,13 +42,21 @@ test('scalable logo variants and legacy SVG URLs share the new geometry, not a r
     'selvora-mark.svg',
   ]) {
     const svg = (await publicFile(name)).toString();
-    assert.ok(svg.includes(`d="${INVEND_BAG_PATH}"`), name);
-    assert.ok(svg.includes(`d="${INVEND_HANDLE_PATH}" fill="none"`), 'handle must stay open');
-    assert.ok(svg.includes(INVEND_GOLD), name);
+    assert.ok(svg.includes(`d="${INVEND_CHAT_CART_PATH}"`), name);
+    assert.ok(
+      svg.includes('fill-rule="evenodd"'),
+      'message/cart details are negative space in one silhouette',
+    );
+    assert.doesNotMatch(svg, /<circle\b|#F5B700/, 'no detached cart wheels or gold detail');
+    if (name !== 'invend-logo-inverse.svg') assert.ok(svg.includes(INVEND_EMERALD), name);
     assert.match(svg, /viewBox="0 0 \d+ 64"/);
     assert.match(svg, /aria-label="[Ii]nvend"/);
     assert.doesNotMatch(svg, /<image\b|<text\b|selvora/i, name);
   }
+  assert.ok(
+    (await publicFile('invend-logo.svg')).toString().includes(INVEND_CHARCOAL),
+    'wordmark remains charcoal',
+  );
   assert.deepEqual(await publicFile('selvora-mark.svg'), await publicFile('favicon.svg'));
 });
 
@@ -78,36 +81,30 @@ test('touch icon and favicon contain correctly sized real PNG images', async () 
   });
 });
 
-test('the refined install mark uses charcoal/gold and stays inside the maskable safe circle', async () => {
-  const charcoal = [28, 28, 28];
-  const gold = [245, 183, 0];
+test('the message-first install mark uses emerald/white and stays inside the maskable safe circle', async () => {
+  const emerald = [22, 132, 91];
   assert.equal(INVEND_CHARCOAL, '#1C1C1C');
-  assert.equal(INVEND_GOLD, '#F5B700');
+  assert.equal(INVEND_EMERALD, '#16845B');
   for (const size of [192, 512]) {
     const { data, info } = await sharp(await publicFile(`invend-icon-${size}.png`))
       .ensureAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
     assert.equal(info.channels, 4);
-    assert.deepEqual([...data.subarray(0, 3)], charcoal);
-    let goldPixels = 0;
+    assert.deepEqual([...data.subarray(0, 3)], emerald);
     let whitePixels = 0;
     let radius = 0;
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
         const index = (y * size + x) * 4;
         const rgb = [...data.subarray(index, index + 3)];
-        if (rgb.every((value, channel) => value === gold[channel])) goldPixels++;
         if (rgb.every((value) => value === 255)) whitePixels++;
         // Ignore barely visible antialiasing at the edge of the silhouette.
-        if (rgb.some((value, channel) => Math.abs(value - charcoal[channel]) > 12))
+        if (rgb.some((value, channel) => Math.abs(value - emerald[channel]) > 12))
           radius = Math.max(radius, Math.hypot(x + 0.5 - size / 2, y + 0.5 - size / 2));
       }
     }
-    assert.ok(
-      goldPixels > 0 && whitePixels > 0,
-      'the mark and its accent must both survive rasterisation',
-    );
+    assert.ok(whitePixels > 0, 'the message silhouette survives rasterisation');
     assert.ok(radius < size * 0.4, `${size}px icon fits the central 80%-diameter safe circle`);
   }
 });
@@ -119,6 +116,8 @@ async function worker() {
   const stores = new Map([
     ['selvora-static-v1', new Map([['/offline.html', 'old branding']])],
     ['selvora-static-v2', new Map([['/invend-icon-192.png', 'previous bag icon']])],
+    ['selvora-static-v3', new Map([['/invend-icon-192.png', 'previous bag icon']])],
+    ['selvora-static-v4', new Map([['/invend-icon-192.png', 'previous cart-first icon']])],
     ['another-app-cache', new Map([['/offline.html', 'unrelated content']])],
   ]);
   let claimed = false;
@@ -160,9 +159,9 @@ test('branding upgrade evicts the old offline cache without deleting another app
   const sw = await worker();
   assert.deepEqual(sw.cached, ['/offline.html', '/invend-icon-192.png']);
   await sw.dispatch('activate');
-  assert.equal(sw.stores.has('selvora-static-v1'), false);
-  assert.equal(sw.stores.has('selvora-static-v2'), false);
-  assert.equal(sw.stores.has('selvora-static-v3'), true);
+  for (const version of [1, 2, 3, 4])
+    assert.equal(sw.stores.has(`selvora-static-v${version}`), false);
+  assert.equal(sw.stores.has('selvora-static-v5'), true);
   assert.equal(sw.stores.has('another-app-cache'), true);
   assert.equal(sw.claimed(), true);
 });

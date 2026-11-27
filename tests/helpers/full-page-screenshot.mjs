@@ -4,7 +4,8 @@ import sharp from 'sharp';
  * Capture the actual viewport in tiles. The bundled headless Chromium can repeat
  * its first texture after 8192px in a single fullPage image. This avoids that
  * artifact on long story pages without changing any application source/styles.
- * The sticky header is static only during capture so it appears once in the image.
+ * The floating header is absolute only during capture so it appears once, preserving
+ * its viewport-relative centring without adding artificial height to the hero.
  */
 export async function fullPageScreenshot(page, destination) {
   const viewport = page.viewportSize();
@@ -16,7 +17,7 @@ export async function fullPageScreenshot(page, destination) {
   }));
   try {
     await header.evaluate((element) =>
-      element.style.setProperty('position', 'static', 'important'),
+      element.style.setProperty('position', 'absolute', 'important'),
     );
     const height = await page.evaluate(() => Math.ceil(document.documentElement.scrollHeight));
     const tiles = [];

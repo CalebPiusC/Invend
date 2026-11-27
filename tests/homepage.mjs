@@ -1,36 +1,88 @@
 import assert from 'node:assert/strict';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { launchBrowser } from './helpers/chromium.mjs';
 import { fullPageScreenshot } from './helpers/full-page-screenshot.mjs';
 
-// Start the development or production web server with DATA_MODE=mock.
-// No real provider, account, message or payment is involved in these checks.
+// Local browser verification only. No live provider, account creation, message or payment.
 const origin = process.env.SELVORA_HOME_URL ?? 'http://localhost:3000/';
 const artifacts = process.env.SELVORA_SCREENSHOT_DIR;
+const widths = process.env.SELVORA_HOME_WIDTHS?.split(',').map(Number) ?? [
+  320, 375, 390, 430, 768, 900, 1024, 1100, 1280, 1440, 1920,
+];
 if (artifacts) await mkdir(artifacts, { recursive: true });
 const browser = await launchBrowser();
-let scans = 0;
+const checks = [];
 const errors = [];
-const results = [];
+const badAssets = [];
+const businessRequests = [];
+const featureNames = [
+  'Smart Customer Inbox',
+  'AI-Assisted Customer Conversations',
+  'Photo-First Catalogue',
+  'Order Management',
+  'Payment Tracking',
+  'Digital Receipts',
+  'Business Insights',
+  'Team Management',
+];
+const navigation = [
+  ['Home', '#home'],
+  ['Features', '#features'],
+  ['How it works', '#how-it-works'],
+  ['Pricing', '#pricing'],
+  ['About', '#about'],
+  ['Sign in', '/app?auth=sign-in'],
+  ['Get started', '/app?auth=sign-up'],
+];
+let scans = 0;
 try {
   const context = await browser.newContext({ reducedMotion: 'reduce' });
   const page = await context.newPage();
+  page.setDefaultTimeout(15000);
   page.on('pageerror', (error) => errors.push(error.message));
-  const businessRequests = [];
   page.on('request', (request) => {
-    if (new URL(request.url()).pathname.startsWith('/api/v1/'))
+    if (
+      new URL(page.url()).pathname === '/' &&
+      new URL(request.url()).pathname.startsWith('/api/v1/')
+    )
       businessRequests.push(request.url());
   });
-
+  page.on('response', (response) => {
+    if (
+      response.status() >= 400 &&
+      ['image', 'stylesheet', 'script', 'font'].includes(response.request().resourceType())
+    )
+      badAssets.push({ url: response.url(), status: response.status() });
+  });
+  const settle = () =>
+    page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    );
+  async function go(path = '/') {
+    const previousDocument = page.url().split('#')[0];
+    const response = await page.goto(new URL(path, origin).href, {
+      waitUntil: 'networkidle',
+      timeout: 120000,
+    });
+    if (response) assert.equal(response.status(), 200, path);
+    else
+      assert.equal(
+        page.url().split('#')[0],
+        previousDocument,
+        'only a same-document navigation has no HTTP response',
+      );
+    await page.evaluate(() => document.fonts.ready);
+    return response;
+  }
   async function fit(label) {
-    const size = await page.evaluate(() => ({
+    const dimensions = await page.evaluate(() => ({
       width: innerWidth,
       scroll: document.documentElement.scrollWidth,
     }));
     assert.ok(
-      size.scroll <= size.width + 1,
-      `${label}: horizontal overflow ${JSON.stringify(size)}`,
+      dimensions.scroll <= dimensions.width + 1,
+      `${label}: overflow ${JSON.stringify(dimensions)}`,
     );
   }
   async function accessible(label) {
@@ -39,379 +91,587 @@ try {
         runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
       }),
     );
-    assert.deepEqual(
-      result.violations.map((violation) => ({
-        id: violation.id,
-        nodes: violation.nodes.map((node) => ({
-          target: node.target,
-          summary: node.failureSummary,
-        })),
-      })),
-      [],
-      `${label}: accessibility violations`,
-    );
+    const violations = result.violations.map((v) => ({
+      id: v.id,
+      nodes: v.nodes.map((n) => ({ target: n.target, summary: n.failureSummary })),
+    }));
+    checks.push({ label, violations });
+    assert.deepEqual(violations, [], `${label}: accessibility`);
     scans++;
+    await fit(label);
   }
-  async function screenshot(name, fullPage = false) {
+  async function capture(name, locator) {
     if (!artifacts) return;
-    const path = join(artifacts, `${name}.png`);
-    if (fullPage) await fullPageScreenshot(page, path);
-    else await page.screenshot({ path });
-  }
-  async function top() {
-    await page.evaluate(
-      () =>
-        new Promise((resolve) => {
-          window.scrollTo(0, 0);
-          requestAnimationFrame(() => requestAnimationFrame(resolve));
-        }),
-    );
-  }
-
-  async function openWorkflow(id) {
-    const details = page.locator(`[id="${id}"]`);
-    if (!(await details.evaluate((element) => element.open)))
-      await details.locator(':scope > summary').click();
-    assert.equal(await details.evaluate((element) => element.open), true);
-    if ((await details.getAttribute('name')) === 'invend-workflows')
-      assert.equal(await page.locator('details[name="invend-workflows"][open]').count(), 1);
-  }
-  async function demoScreenshot(testId, name) {
-    if (artifacts)
-      await page.getByTestId(testId).screenshot({
+    if (locator)
+      await locator.screenshot({
         path: join(artifacts, `${name}.png`),
-        // Element captures otherwise include the sticky page header over their first rows.
-        style: 'header { visibility: hidden; }',
+        animations: 'disabled',
+        // Component-only captures exclude fixed chrome. Offscreen fixed elements can be
+        // painted into beyond-viewport crops by the bundled headless compositor.
+        style: 'header, a[href="#main-content"]:not(:focus) { visibility: hidden; }',
       });
+    else await page.screenshot({ path: join(artifacts, `${name}.png`), animations: 'disabled' });
+  }
+  async function scrollTo(selector) {
+    await page
+      .locator(selector)
+      .evaluate((element) => element.scrollIntoView({ block: 'start', behavior: 'instant' }));
+    await settle();
+  }
+  async function selectFeature(index, width) {
+    if (width < 900)
+      await page.getByRole('combobox', { name: /Choose a feature/ }).selectOption(String(index));
+    else await page.getByRole('tab', { name: featureNames[index], exact: true }).click();
+    const panel = page.getByRole('tabpanel', { name: featureNames[index], exact: true });
+    await panel.waitFor();
+    assert.equal(await page.getByRole('tabpanel').count(), 1);
+    assert.equal(await page.locator('[role="tab"][aria-selected="true"]').count(), 1);
+    return panel;
   }
 
-  for (const width of [320, 390, 768, 900, 1100, 1280, 1440]) {
+  for (const width of widths) {
     await page.setViewportSize({ width, height: width < 600 ? 844 : 1000 });
-    const response = await page.goto(origin, { waitUntil: 'networkidle', timeout: 120000 });
-    assert.equal(response.status(), 200);
-    await page.evaluate(() => document.fonts.ready);
+    await go('/');
     await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });
+    await settle();
     assert.equal(await page.getByRole('heading', { level: 1 }).count(), 1);
-    assert.match(await page.title(), /Invend.*AI sales assistant/);
+    assert.match(await page.title(), /Invend.*One workspace/);
     assert.doesNotMatch(await page.locator('body').innerText(), /selvora/i);
-    const homeBrand = page.getByRole('banner').getByRole('link', { name: 'Invend home' });
-    assert.equal(await homeBrand.innerText(), 'invend');
-    assert.equal(await homeBrand.locator('svg[data-brand="invend"]').count(), 1);
+    assert.equal(await page.getByTestId('sample-label').count(), 0);
+    const hero = await page.locator('#home').boundingBox();
+    const heroCopy = await page.locator('#home > div').first().boundingBox();
+    const height = page.viewportSize().height;
+    const phone = await page.getByTestId('hero-phone').boundingBox();
+    const dashboard = await page.getByTestId('hero-dashboard').boundingBox();
+    const caption = await page.getByTestId('workspace-preview').locator('figcaption').boundingBox();
+    assert.ok(
+      heroCopy.y + heroCopy.height < height,
+      `${width}: opening copy and CTAs fit the initial viewport`,
+    );
+    assert.equal(await page.locator('#home [data-testid="workspace-preview"]').count(), 1);
+    assert.equal(await page.locator('#home + section').getAttribute('id'), 'integrations');
+    assert.ok(
+      phone.width >= 260 && phone.width <= 340,
+      `${width}: phone is a prominent, deliberately mobile interface`,
+    );
+    assert.ok(
+      phone.x + phone.width > dashboard.x + dashboard.width - 30,
+      `${width}: phone overlaps towards the right`,
+    );
+    assert.ok(
+      caption.y >= phone.y + phone.height + 8,
+      `${width}: illustration caption clears the phone`,
+    );
+    assert.ok(
+      hero.height > heroCopy.height + 500,
+      `${width}: product showcase is part of the hero`,
+    );
+    if (width >= 1100) {
+      assert.ok(
+        phone.y < height - 180 && dashboard.y < height - 130,
+        `${width}: upper product showcase is visible without scrolling`,
+      );
+    }
     assert.equal(
-      await page.getByTestId('sample-label').count(),
+      await page.getByTestId('workspace-preview').getByRole('button').count(),
       0,
-      'no tenant provider on the public homepage',
+      'illustrations never impersonate functional product controls',
     );
-    assert.equal(
-      await page.locator('#home').evaluate((element) => getComputedStyle(element).backgroundColor),
-      'rgb(255, 254, 250)',
-    );
-    await page.getByAltText(/AI-generated adire tote used/).evaluate((image) => image.decode());
-    await fit(`${width} homepage`);
-    await accessible(`${width} homepage`);
-    const colours = {
-      '#ai-sales-assistant': 'rgb(255, 255, 255)',
-      '#integrations': 'rgb(255, 248, 230)',
+    await page.waitForFunction(() => document.querySelector('header').dataset.solid === 'false');
+    assert.equal(await page.locator('meta[name="theme-color"]').getAttribute('content'), '#FFFEFC');
+    for (const [selector, colour] of Object.entries({
+      '#home': 'rgb(255, 254, 252)',
+      '#integrations': 'rgb(247, 247, 245)',
+      '#the-problem': 'rgb(255, 248, 230)',
+      '#features': 'rgb(255, 255, 255)',
       '#pricing': 'rgb(255, 254, 250)',
-      '[aria-label="Growth plan preview"]': 'rgb(28, 28, 28)',
       '[aria-labelledby="start-title"]': 'rgb(28, 28, 28)',
-      footer: 'rgb(255, 254, 250)',
-    };
-    for (const [selector, colour] of Object.entries(colours))
+    })) {
       assert.equal(
         await page
           .locator(selector)
           .evaluate((element) => getComputedStyle(element).backgroundColor),
         colour,
       );
-    assert.equal(await page.locator('meta[name="theme-color"]').getAttribute('content'), '#FFFEFA');
-    assert.equal(await page.locator('details[name="invend-workflows"]').count(), 6);
-    assert.equal(await page.locator('details[name="invend-workflows"][open]').count(), 0);
-
-    const hero = page.getByTestId('hero-sales-demo');
-    await hero.getByRole('button', { name: 'Build a sample draft' }).click();
-    assert.equal(await hero.getByText('₦23,500', { exact: true }).count(), 1);
-    assert.equal(await hero.getByText('Not yet approved', { exact: true }).count(), 1);
-    assert.equal(await hero.getByRole('button', { name: 'Approve demo counter-offer' }).count(), 0);
-    await fit(`${width} hero draft`);
-    await accessible(`${width} hero draft`);
-    await hero.getByRole('button', { name: 'Review owner approval' }).click();
-    assert.equal(await hero.getByText('Not yet approved', { exact: true }).count(), 1);
-    await hero.getByRole('button', { name: 'Approve demo counter-offer' }).click();
-    assert.match(
-      await hero.getByRole('status').textContent(),
-      /No message was sent or order saved/,
-    );
-    assert.equal(
-      await hero.getByText('Customer acceptance and payment are still pending.').count(),
-      1,
-    );
-    await accessible(`${width} hero approval`);
-    if (width === 390 || width === 1440)
-      await demoScreenshot('hero-sales-demo', `hero-approved-${width}`);
-    await hero.getByRole('button', { name: 'Restart example' }).click();
-    await top();
-
-    const menu = page.locator('button[aria-controls="site-navigation"]');
-    if (width < 1100) {
-      await menu.click();
-      assert.equal(await menu.getAttribute('aria-expanded'), 'true');
-      await accessible(`${width} mobile navigation`);
     }
-    const features = page.getByRole('button', { name: 'Features', exact: true });
-    await features.focus();
-    await page.keyboard.press('ArrowDown');
-    const panel = page.locator('#feature-navigation');
-    assert.equal(await panel.getByRole('link').count(), 7);
-    assert.equal(
-      await panel
-        .getByRole('link')
-        .first()
-        .evaluate((element) => element === document.activeElement),
-      true,
-    );
-    await accessible(`${width} grouped feature navigation`);
-    await page.keyboard.press('Escape');
-    assert.equal(await features.getAttribute('aria-expanded'), 'false');
-    assert.equal(await features.evaluate((element) => element === document.activeElement), true);
-    await page.keyboard.press('ArrowUp');
-    assert.equal(
-      await panel
-        .getByRole('link')
-        .last()
-        .evaluate((element) => element === document.activeElement),
-      true,
-    );
-    await panel.getByRole('link', { name: /Smart Catalogue/ }).click();
-    if (width < 1100) assert.equal(await menu.getAttribute('aria-expanded'), 'false');
-    const targetTop = await page
-      .locator('#smart-catalogue')
-      .evaluate((element) => element.getBoundingClientRect().top);
-    const headerBottom = await page
-      .getByRole('banner')
-      .evaluate((element) => element.getBoundingClientRect().bottom);
-    assert.ok(
-      targetTop >= headerBottom && targetTop < 150,
-      `${width} anchor clearance: ${targetTop}`,
-    );
+    await accessible(`${width} initial homepage`);
+    await capture(`hero-${width}`);
 
-    assert.equal(await page.locator('#smart-catalogue').evaluate((element) => element.open), true);
-    await page.locator('#smart-catalogue > summary').click();
-    await page.getByTestId('workspace-preview').locator('a[href="#smart-catalogue"]').click();
+    const mobile = width < 1100;
+    const toggle = page.getByRole('button', { name: 'Open navigation' });
+    let nav;
+    if (mobile) {
+      await toggle.click();
+      const dialog = page.getByRole('dialog', { name: 'Site navigation' });
+      nav = dialog.getByRole('navigation', { name: 'Mobile navigation' });
+      assert.equal(await page.evaluate(() => document.body.style.overflow), 'hidden');
+      assert.equal(
+        await nav
+          .getByRole('link')
+          .first()
+          .evaluate((element) => element === document.activeElement),
+        true,
+      );
+      assert.deepEqual(
+        await nav
+          .getByRole('link')
+          .evaluateAll((links) => links.map((link) => link.getAttribute('href'))),
+        navigation.filter(([name]) => name !== 'Features').map(([, href]) => href),
+      );
+      assert.equal(await nav.locator('details > summary').innerText(), 'Features');
+      for (let i = 0; i < 12; i++) {
+        await page.keyboard.press('Tab');
+        assert.equal(
+          await dialog.evaluate((element) => element.contains(document.activeElement)),
+          true,
+          `${width} native modal focus containment`,
+        );
+      }
+      await accessible(`${width} mobile drawer`);
+      await capture(`navigation-${width}`);
+      await page.keyboard.press('Escape');
+      assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
+      assert.equal(await toggle.evaluate((element) => element === document.activeElement), true);
+      assert.equal(await page.evaluate(() => document.body.style.overflow), '');
+    } else {
+      nav = page.getByRole('navigation', { name: 'Main navigation' });
+      assert.deepEqual(
+        await nav.evaluate((element) =>
+          [...element.children].map((control) => control.textContent.trim()),
+        ),
+        navigation.slice(0, 5).map(([name]) => name),
+      );
+      assert.equal(
+        await nav.getByRole('button', { name: 'Features' }).getAttribute('aria-expanded'),
+        'false',
+      );
+      assert.deepEqual(
+        await page
+          .getByRole('navigation', { name: 'Account navigation' })
+          .getByRole('link')
+          .evaluateAll((links) =>
+            links.map((link) => [link.textContent.trim(), link.getAttribute('href')]),
+          ),
+        navigation.slice(5),
+      );
+    }
+    // Exercise all five section links, not just their hrefs; test active section and header clearance.
+    for (const [name, href] of navigation.slice(0, 5)) {
+      if (mobile) {
+        await toggle.click();
+        nav = page.getByRole('navigation', { name: 'Mobile navigation' });
+      }
+      if (href === '#features') {
+        if (mobile) {
+          await nav.locator('details > summary').click();
+          await nav.getByRole('link', { name: 'Explore all features' }).click();
+        } else {
+          await nav.getByRole('button', { name: 'Features' }).click();
+          await page
+            .getByRole('region', { name: 'Explore Invend features' })
+            .getByRole('link', { name: 'See all features' })
+            .click();
+        }
+      } else await nav.locator(`a[href="${href}"]`).click();
+      if (mobile) assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
+      await page.waitForFunction(
+        (hash) =>
+          document
+            .querySelector(
+              hash === '#features'
+                ? '#features-navigation-trigger'
+                : `nav[aria-label="Main navigation"] a[href="${hash}"]`,
+            )
+            .getAttribute('aria-current') === 'location',
+        href,
+      );
+      await settle();
+      if (href !== '#home') {
+        const top = await page
+          .locator(href)
+          .evaluate((element) => element.getBoundingClientRect().top);
+        const bottom = await page
+          .getByRole('banner')
+          .evaluate((element) => element.getBoundingClientRect().bottom);
+        assert.ok(top >= bottom - 1 && top < 150, `${width} ${name} clears header: ${top}`);
+        assert.equal(await page.getByRole('banner').getAttribute('data-solid'), 'true');
+      }
+    }
+    // A large native jump from outside every observed nav section must not retain About.
+    await scrollTo('footer');
+    await page.waitForFunction(
+      () =>
+        document
+          .querySelector('nav[aria-label="Main navigation"] a[href="#about"]')
+          .getAttribute('aria-current') === 'location',
+    );
+    await scrollTo('#workspace');
+    await page.waitForFunction(
+      () =>
+        document
+          .querySelector('nav[aria-label="Main navigation"] a[href="#home"]')
+          .getAttribute('aria-current') === 'location',
+    );
     assert.equal(
-      await page.locator('#smart-catalogue').evaluate((element) => element.open),
-      true,
-      'repeated anchor reopens the demo',
+      await page.getByRole('banner').getAttribute('data-solid'),
+      'true',
+      `${width}: the floating header is solid over the hero product showcase`,
     );
-    await openWorkflow('negotiation');
-    const negotiation = page.getByTestId('negotiation-demo');
-    assert.equal(await negotiation.getByText('Owner review required', { exact: true }).count(), 1);
-    await negotiation.getByRole('button', { name: 'Approve sample counter-offer' }).click();
-    assert.match(
-      await negotiation.getByRole('status').textContent(),
-      /No message was sent and no order was changed/,
+    // Native scroll (not link state) updates the active nav; returning to the hero restores transparency.
+    await scrollTo('#features');
+    await page.waitForFunction(
+      () =>
+        document.querySelector('#features-navigation-trigger').getAttribute('aria-current') ===
+        'location',
     );
-    await fit(`${width} approval`);
-    await accessible(`${width} approval`);
-    if (width === 390 || width === 1440)
-      await demoScreenshot('negotiation-demo', `negotiation-${width}`);
-    await negotiation.getByRole('button', { name: '₦22,000', exact: true }).click();
-    assert.equal(await negotiation.getByText('Within the price boundary').count(), 1);
-    await negotiation.getByRole('button', { name: 'Try the rule-checked reply' }).click();
-    assert.match(await negotiation.getByRole('status').textContent(), /No message was sent/);
-    await negotiation.getByRole('button', { name: 'Reset demo' }).click();
+    if (width >= 900) {
+      const tabs = page.getByRole('tab');
+      await tabs.first().focus();
+      await page.keyboard.press('ArrowDown');
+      assert.equal(
+        await tabs.nth(1).evaluate((element) => element === document.activeElement),
+        true,
+      );
+      await page.keyboard.press('End');
+      assert.equal(await tabs.nth(7).getAttribute('aria-selected'), 'true');
+      await page.keyboard.press('ArrowRight');
+      assert.equal(await tabs.first().getAttribute('aria-selected'), 'true');
+      await page.keyboard.press('Tab');
+      assert.equal(
+        await page.getByRole('tabpanel').evaluate((element) => element === document.activeElement),
+        true,
+      );
+    }
+    const inbox = await selectFeature(0, width);
+    await inbox.getByRole('button', { name: /Lola Adeyemi/ }).click();
+    assert.match(await inbox.innerText(), /WhatsApp · fictional conversation/);
+    await inbox.getByRole('button', { name: /Chidi Okafor/ }).click();
+    assert.match(await inbox.innerText(), /Yaba, Lagos · delivery enquiry/);
+    await accessible(`${width} inbox selection`);
 
-    await openWorkflow('smart-catalogue');
-    const catalogue = page.getByTestId('catalogue-demo');
+    const assistance = await selectFeature(1, width);
+    assert.match(await assistance.getByRole('status').innerText(), /₦2,000 below your minimum/);
+    await assistance.getByRole('button', { name: '₦22,000', exact: true }).click();
+    assert.match(await assistance.getByRole('status').innerText(), /Inside your price boundary/);
+    await accessible(`${width} price boundary`);
+
+    const catalogue = await selectFeature(2, width);
     await catalogue.getByRole('button', { name: 'Review sample details' }).click();
-    assert.equal(
-      await catalogue.getByRole('button', { name: 'Confirm sample product' }).isDisabled(),
-      true,
-    );
+    const confirmProduct = catalogue.getByRole('button', { name: 'Confirm sample product' });
+    assert.equal(await confirmProduct.isDisabled(), true);
+    await catalogue.getByRole('checkbox').check();
     await catalogue.getByRole('button', { name: 'Increase sample stock' }).click();
     assert.equal(
       await catalogue.getByRole('status', { name: 'Sample stock count' }).textContent(),
       '13',
     );
+    assert.equal(await catalogue.getByRole('checkbox').isChecked(), false);
+    assert.equal(await confirmProduct.isDisabled(), true);
     await catalogue.getByRole('checkbox').check();
-    await catalogue.getByRole('button', { name: 'Confirm sample product' }).click();
+    await confirmProduct.click();
     assert.match(
-      await catalogue.locator('p[role="status"]').textContent(),
+      await catalogue.getByRole('status', { name: 'Sample product review' }).innerText(),
       /No product or photo was saved/,
     );
-    await fit(`${width} catalogue confirmation`);
-    await accessible(`${width} catalogue confirmation`);
-    if (width === 390 || width === 1440)
-      await demoScreenshot('catalogue-demo', `catalogue-${width}`);
-    await catalogue.getByRole('button', { name: 'Reset demo' }).click();
+    await accessible(`${width} catalogue review and confirmation`);
+    if (width === 390 || width === 1440) await capture(`catalogue-${width}`, catalogue);
+    await catalogue.getByRole('button', { name: 'Reset', exact: true }).click();
 
-    await openWorkflow('unified-inbox');
-    const inbox = page.getByTestId('inbox-demo');
-    for (const name of ['Chidi Okafor', 'Lola Adeyemi', 'Amaka Bello']) {
-      await inbox.getByRole('button', { name: new RegExp(name) }).click();
-      assert.equal(
-        await inbox.getByRole('button', { name: new RegExp(name) }).getAttribute('aria-pressed'),
-        'true',
-      );
-    }
-    assert.match(await inbox.textContent(), /including a planned integration/);
-    await fit(`${width} inbox`);
-    await accessible(`${width} inbox`);
-    if (width === 390 || width === 1440) await demoScreenshot('inbox-demo', `inbox-${width}`);
-
-    await openWorkflow('lead-management');
-    const lead = page.getByTestId('lead-demo');
-    await lead.getByRole('button', { name: /Ready to buy/ }).click();
-    assert.equal(
-      await lead.getByRole('button', { name: 'Queue sample follow-up' }).isDisabled(),
-      true,
-    );
-    await lead.getByRole('checkbox').check();
-    await lead.getByRole('button', { name: 'Queue sample follow-up' }).click();
-    assert.match(await lead.getByRole('status').textContent(), /No message will be sent/);
-    await fit(`${width} follow-up`);
-    await accessible(`${width} follow-up`);
-    if (width === 390 || width === 1440) await demoScreenshot('lead-demo', `lead-${width}`);
-    await lead.getByRole('button', { name: 'Reset demo' }).click();
-
-    await openWorkflow('orders-and-payments');
-    const order = page.getByTestId('order-demo');
+    const order = await selectFeature(3, width);
     await order.getByRole('button', { name: 'Create sample draft' }).click();
-    await order.getByRole('button', { name: 'Review payment step' }).click();
-    await order.getByRole('button', { name: 'Test a payment screenshot' }).click();
+    await order.getByRole('button', { name: 'Review sample order' }).click();
+    assert.match(await order.innerText(), /Payment not confirmed/);
+    await accessible(`${width} order review`);
+    await order.getByRole('button', { name: 'Explore payment tracking' }).click();
+    const payment = page.getByRole('tabpanel', { name: 'Payment Tracking' });
+    await payment.waitFor();
+    await payment.getByRole('button', { name: 'Test a payment screenshot' }).click();
+    assert.match(await payment.getByRole('status').innerText(), /Payment is still unconfirmed/);
     assert.equal(
-      await order.getByRole('button', { name: 'Record sample confirmation' }).isDisabled(),
+      await payment.getByRole('button', { name: 'Record sample confirmation' }).isDisabled(),
       true,
     );
-    assert.equal(await order.getByText('Payment not confirmed', { exact: true }).count(), 1);
-    assert.equal(await order.getByText('SAMPLE RECEIPT', { exact: true }).count(), 0);
-    await accessible(`${width} unverified payment screenshot`);
-    await order.getByRole('checkbox').check();
-    await order.getByRole('button', { name: 'Record sample confirmation' }).click();
-    assert.equal(await order.getByText('SAMPLE RECEIPT', { exact: true }).count(), 1);
-    assert.equal(await order.getByText('₦23,500', { exact: true }).count(), 1);
+    await accessible(`${width} unverified screenshot`);
+    await selectFeature(5, width);
     assert.equal(
-      await order.getByText('Illustrative receipt. Not proof of a real payment.').count(),
-      1,
+      await page.getByRole('tabpanel').getByText('SAMPLE RECEIPT', { exact: true }).count(),
+      0,
     );
-    await fit(`${width} receipt`);
-    await accessible(`${width} receipt`);
-    if (width === 390 || width === 1440) await demoScreenshot('order-demo', `receipt-${width}`);
-    await order.getByRole('button', { name: 'Reset demo' }).click();
-
-    await openWorkflow('team-management');
-    const control = page.getByTestId('control-demo');
-    await control.getByRole('button', { name: 'Take over demo conversation' }).click();
+    await page.getByRole('button', { name: 'Review sample payment' }).click();
+    await payment.getByRole('checkbox').check();
+    await payment.getByRole('button', { name: 'Record sample confirmation' }).click();
+    assert.match(await payment.getByRole('status').innerText(), /No real transfer was verified/);
+    await payment.getByRole('button', { name: 'View sample receipt' }).click();
+    const receipt = page.getByRole('tabpanel', { name: 'Digital Receipts' });
+    assert.equal(await receipt.getByText('SAMPLE RECEIPT', { exact: true }).count(), 1);
+    assert.equal(await receipt.getByText('₦23,500', { exact: true }).count(), 1);
+    assert.match(await receipt.innerText(), /Not proof of a real payment/);
+    await accessible(`${width} confirmation-gated receipt`);
+    if (width === 390 || width === 1440) await capture(`receipt-${width}`, receipt);
+    await selectFeature(4, width);
+    await payment.getByRole('button', { name: 'Reset', exact: true }).click();
+    await selectFeature(5, width);
     assert.equal(
-      await control.getByText('AI replies are paused in this demonstration.').count(),
-      1,
+      await page.getByRole('tabpanel').getByText('SAMPLE RECEIPT', { exact: true }).count(),
+      0,
     );
-    await accessible(`${width} human takeover`);
-    await control.getByRole('button', { name: 'Hand back to assistant' }).click();
-    await control.getByRole('combobox').selectOption('Bisi');
-    await control.getByRole('button', { name: 'Approve sample reply' }).click();
-    assert.match(await control.getByRole('status').textContent(), /No message was sent/);
-    await fit(`${width} staff assignment`);
-    await accessible(`${width} staff assignment`);
-    if (width === 390 || width === 1440) await demoScreenshot('control-demo', `control-${width}`);
-    await control.getByRole('button', { name: 'Reset demo' }).click();
 
-    await page.locator('#team-management > summary').click();
-    await openWorkflow('integration-readiness');
-    const integrations = page.getByTestId('integration-status');
-    assert.equal(await integrations.getByRole('listitem').count(), 6);
-    assert.match(await integrations.getByRole('listitem').nth(0).textContent(), /Gmail \/ Email/);
-    assert.match(await integrations.getByRole('listitem').nth(1).textContent(), /WhatsApp/);
+    const insights = await selectFeature(6, width);
+    await insights.getByRole('button', { name: 'Conversations', exact: true }).click();
     assert.match(
-      await integrations
-        .getByRole('listitem')
-        .filter({ has: page.getByText('SMS', { exact: true }) })
-        .textContent(),
-      /Exploring · not supported/,
+      await insights.getByRole('img').getAttribute('aria-label'),
+      /Total 22. Not business performance/,
     );
-    assert.match(await page.locator('#pricing').textContent(), /not published in this preview/);
+    await accessible(`${width} fictional insights`);
+    const team = await selectFeature(7, width);
+    await team.getByRole('combobox').selectOption('Bisi');
+    assert.match(await team.getByRole('status').innerText(), /Assigned to Bisi in this demo/);
+    await team.getByRole('button', { name: 'Take over sample conversation' }).click();
+    assert.match(await team.innerText(), /Assistant replies paused/);
+    await accessible(`${width} assigned human takeover`);
+    await team.getByRole('button', { name: 'Hand back to assistant' }).click();
+    assert.match(await team.getByRole('status').innerText(), /Rule-bound assistance can resume/);
 
-    for (const plan of ['Starter', 'Growth', 'Scale']) {
-      const preview = page.getByRole('article', { name: `${plan} plan preview` });
-      assert.match(await preview.textContent(), /Pricing to be confirmed/);
-      assert.equal(await preview.getByRole('link').getAttribute('href'), '/app');
-    }
-    assert.doesNotMatch(
-      await page.locator('#pricing').textContent(),
-      /\$\d|most popular|free trial/i,
+    const owner = page.getByTestId('owner-decision-demo');
+    await owner.getByRole('button', { name: 'Edit', exact: true }).click();
+    await owner.getByRole('textbox', { name: /Counter-offer/ }).fill('20000');
+    await owner.getByRole('button', { name: 'Save sample edit' }).click();
+    assert.match(await owner.getByRole('alert').innerText(), /between ₦22,000 and ₦24,000/);
+    await accessible(`${width} owner edit validation`);
+    await owner.getByRole('textbox', { name: /Counter-offer/ }).fill('23000.50');
+    await owner.getByRole('button', { name: 'Save sample edit' }).click();
+    assert.match(await owner.innerText(), /₦23,000.50/);
+    assert.equal(
+      await owner
+        .getByRole('button', { name: 'Approve', exact: true })
+        .evaluate((element) => element === document.activeElement),
+      true,
     );
-    await accessible(`${width} integration readiness`);
-    await fit(`${width} integration readiness`);
+    await owner.getByRole('button', { name: 'Approve', exact: true }).click();
+    assert.match(await owner.getByRole('status').innerText(), /No message sent. No order saved/);
+    await accessible(`${width} owner approval`);
+    if (width === 390 || width === 1440) await capture(`owner-approved-${width}`, owner);
+    await owner.getByRole('button', { name: 'Reset example' }).click();
+    await owner.getByRole('button', { name: 'Reject', exact: true }).click();
+    assert.match(await owner.getByRole('status').innerText(), /proposed reply was not sent/);
+    await accessible(`${width} owner rejection`);
+    await owner.getByRole('button', { name: 'Reset example' }).click();
+
     await page.locator('#integration-readiness > summary').click();
-    for (const details of await page.getByTestId('homepage-faq').locator('details').all()) {
-      await details.locator('summary').click();
-      assert.equal(await details.evaluate((element) => element.open), true);
-    }
-    await accessible(`${width} expanded FAQs`);
-    await fit(`${width} FAQs`);
+    const integration = page.getByTestId('integration-status');
+    assert.equal(await integration.getByRole('listitem').count(), 7);
+    assert.match(
+      await integration.getByRole('listitem').nth(0).innerText(),
+      /WhatsApp Business.*Second major channel/s,
+    );
+    assert.match(
+      await integration.getByRole('listitem').nth(1).innerText(),
+      /Gmail.*First planned live channel/s,
+    );
+    assert.match(
+      await integration.getByRole('listitem').nth(4).innerText(),
+      /Invend WhatsApp Assistant.*explicit YES confirmation/s,
+    );
+    assert.match(
+      await integration.getByRole('listitem').nth(5).innerText(),
+      /Available.*not a third-party connection/s,
+    );
+    assert.match(
+      await integration.getByRole('listitem').nth(6).innerText(),
+      /CSV\/XLSX export is not implemented/,
+    );
+    assert.match(await integration.innerText(), /TikTok messaging remains research-only/);
+    assert.match(await integration.innerText(), /SMS is exploratory and unsupported/);
+    await accessible(`${width} honest integration readiness`);
+    await page.locator('#integration-readiness > summary').click();
+    assert.match(await page.locator('#pricing').innerText(), /Not yet published/);
+    assert.doesNotMatch(
+      await page.locator('#pricing').innerText(),
+      /Starter|Growth|Scale|₦|free trial|recommended|most popular/i,
+    );
     for (const details of await page.getByTestId('homepage-faq').locator('details').all())
       await details.locator('summary').click();
-    await page.getByRole('link', { name: 'Back to top', exact: true }).click();
-    assert.ok(
-      (await page
-        .getByRole('heading', { level: 1 })
-        .evaluate((element) => element.getBoundingClientRect().top)) >= headerBottom,
-    );
-    await top();
-    if (width === 390 || width === 1440) {
-      await screenshot(`homepage-${width}`);
-      await screenshot(`homepage-${width}-full`, true);
-      await page.goto(new URL('/#orders-and-payments', origin).href, { waitUntil: 'networkidle' });
-      await page.waitForFunction(() => {
-        const target = document.getElementById('orders-and-payments');
-        const y = target.getBoundingClientRect().top;
-        return (
-          target.open &&
-          y >= document.querySelector('header').getBoundingClientRect().bottom &&
-          y < 150
+    await accessible(`${width} expanded FAQs`);
+    for (const details of await page.getByTestId('homepage-faq').locator('details').all())
+      await details.locator('summary').click();
+    for (const href of await page
+      .locator('a[href]')
+      .evaluateAll((links) => links.map((link) => link.getAttribute('href')))) {
+      if (href.startsWith('#'))
+        assert.equal(await page.locator(`[id="${href.slice(1)}"]`).count(), 1, href);
+      else
+        assert.ok(
+          ['/app', '/app?auth=sign-in', '/app?auth=sign-up'].includes(href),
+          `real destination: ${href}`,
         );
+    }
+    await page.getByRole('link', { name: 'Back to top', exact: true }).click();
+    await page.waitForFunction(
+      () => window.scrollY < 2 && document.querySelector('header').dataset.solid === 'false',
+    );
+    assert.equal(
+      await page
+        .getByRole('banner')
+        .evaluate((element) => getComputedStyle(element).backgroundColor),
+      'rgba(0, 0, 0, 0)',
+    );
+    assert.equal(
+      await page.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior),
+      'auto',
+    );
+    assert.equal(
+      await page
+        .locator('#home > div')
+        .first()
+        .evaluate((element) => getComputedStyle(element).animationName),
+      'none',
+    );
+    assert.equal(
+      await page
+        .getByTestId('workflow-stack')
+        .locator(':scope > li')
+        .first()
+        .evaluate((element) => getComputedStyle(element).position),
+      'relative',
+    );
+    if (width === 390 || width === 1440) {
+      await selectFeature(0, width);
+      await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+      await fullPageScreenshot(page, join(artifacts ?? '.next', `homepage-${width}-full.png`));
+      for (const id of [
+        'workspace',
+        'the-problem',
+        'the-solution',
+        'features',
+        'how-it-works',
+        'owner-control',
+        'integrations',
+        'pricing',
+        'about',
+      ]) {
+        await capture(`${id}-${width}`, page.locator(`#${id}`));
+      }
+      await go('/#smart-catalogue');
+      assert.equal((await page.reload({ waitUntil: 'networkidle' })).status(), 200);
+      await page.getByRole('tabpanel', { name: 'Photo-First Catalogue' }).waitFor();
+      await page.waitForFunction(() => {
+        const y = document
+          .querySelector('[data-testid="feature-tour"]')
+          .getBoundingClientRect().top;
+        return y >= 70 && y < 250;
       });
-      assert.equal(
-        await page
-          .getByTestId('order-demo')
-          .getByRole('button', { name: 'Create sample draft' })
-          .isVisible(),
-        true,
-        'direct workflow URL remains functional',
+      const linkedY = await page
+        .getByTestId('feature-tour')
+        .evaluate((element) => element.getBoundingClientRect().top);
+      assert.ok(
+        linkedY >= 70 && linkedY < 250,
+        `legacy anchor retains a usable scroll position: ${linkedY}`,
       );
     }
-    results.push(
-      `${width}px: scoped palette, hero approval, navigation/keyboard and compact workflows, pricing boundaries, photo review, inbox, consent-led follow-up, payment gate/receipt, takeover and assignment, integration roadmap and FAQs; no overflow`,
+    console.log(
+      `PASS ${width}px: phone-first integrated hero, seven navigation destinations, eight feature previews, owner decisions, payment/receipt gates, disclosures, reduced motion and no overflow.`,
     );
   }
 
-  assert.deepEqual(
-    businessRequests,
-    [],
-    'marketing demonstrations never call private business APIs',
-  );
-  assert.deepEqual(errors, [], 'homepage runtime errors');
-  for (const href of await page
-    .locator('a[href]')
-    .evaluateAll((links) => links.map((link) => link.getAttribute('href')))) {
-    if (href.startsWith('#'))
-      assert.equal(await page.locator(`[id="${href.slice(1)}"]`).count(), 1, href);
-    else
+  // Actual normal-motion sticky stacking, not normalised screenshots or style-only assertions.
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  for (const width of [1024, 1440, 1920]) {
+    await page.setViewportSize({ width, height: 1000 });
+    await go('/');
+    const cards = page.getByTestId('workflow-stack').locator(':scope > li');
+    const target = await cards
+      .last()
+      .evaluate((element) => element.getBoundingClientRect().top + scrollY - 205);
+    await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), target);
+    await settle();
+    const boxes = await cards.evaluateAll((elements) =>
+      elements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { top: rect.top, bottom: rect.bottom, position: getComputedStyle(element).position };
+      }),
+    );
+    assert.ok(
+      boxes.every((box) => box.position === 'sticky'),
+      `${width} sticky panels`,
+    );
+    for (let i = 1; i < boxes.length; i++) {
       assert.ok(
-        ['/app', '/app?auth=sign-in', '/app?auth=sign-up'].includes(href),
-        `unexpected homepage link: ${href}`,
+        boxes[i].top > boxes[i - 1].top + 25 && boxes[i].top < boxes[i - 1].top + 50,
+        `${width} progressive overlap: ${JSON.stringify(boxes)}`,
       );
+      assert.ok(
+        boxes[i - 1].bottom > boxes[i].top + 150,
+        `${width} earlier panel overlaps, not separate columns`,
+      );
+    }
+    await capture(`stacking-${width}`);
+    await fit(`${width} stacked panels`);
+    const before = await page.evaluate(() => scrollY);
+    await page.mouse.wheel(0, 320);
+    await page.waitForFunction((y) => scrollY > y + 100, before);
+    await scrollTo('footer');
+    await page.waitForFunction(
+      () =>
+        document
+          .querySelector('nav[aria-label="Main navigation"] a[href="#about"]')
+          .getAttribute('aria-current') === 'location',
+    );
+    await scrollTo('#workspace');
+    await page.waitForFunction(
+      () =>
+        document.querySelector('header').dataset.solid === 'true' &&
+        document
+          .querySelector('nav[aria-label="Main navigation"] a[href="#home"]')
+          .getAttribute('aria-current') === 'location',
+    );
+    await capture(`phone-dashboard-${width}`);
   }
-
-  await page.goto(new URL('/app?auth=sign-in', origin).href, { waitUntil: 'networkidle' });
-  await page.getByRole('heading', { name: 'Welcome back.' }).waitFor();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await go('/');
   assert.equal(
-    await page.locator('meta[name="theme-color"]').getAttribute('content'),
-    '#242066',
-    'application theme stays unchanged',
+    await page
+      .getByTestId('workflow-stack')
+      .locator(':scope > li')
+      .first()
+      .evaluate((element) => getComputedStyle(element).position),
+    'relative',
   );
+  await page.getByRole('button', { name: 'Open navigation' }).click();
+  await page.setViewportSize({ width: 1440, height: 650 });
+  await page.waitForFunction(() => !document.querySelector('dialog').open);
+  assert.equal(await page.evaluate(() => document.body.style.overflow), '');
+  assert.equal(
+    await page
+      .getByTestId('workflow-stack')
+      .locator(':scope > li')
+      .first()
+      .evaluate((element) => getComputedStyle(element).position),
+    'relative',
+  );
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await go('/');
+  await page.addScriptTag({ path: 'node_modules/axe-core/axe.min.js' });
+  await accessible('normal-motion desktop');
+  await page.evaluate(() => document.documentElement.classList.add('dark'));
+  await accessible('marketing remains light with an application dark preference');
+  await page.evaluate(() => document.documentElement.classList.remove('dark'));
+  assert.deepEqual(businessRequests, [], 'marketing must never call private tenant APIs');
+  assert.deepEqual(badAssets, [], 'all requested assets load');
+  assert.deepEqual(errors, [], 'homepage runtime errors');
+
+  // Auth destinations are exercised through actual links, never a fabricated login.
+  await page
+    .getByRole('navigation', { name: 'Account navigation' })
+    .getByRole('link', { name: 'Sign in', exact: true })
+    .click();
+  await page.getByRole('heading', { name: 'Welcome back.' }).waitFor();
   assert.equal(await page.getByTestId('sample-label').count(), 0);
-  await page.goto(new URL('/app?auth=sign-up', origin).href, { waitUntil: 'networkidle' });
+  assert.equal(await page.locator('meta[name="theme-color"]').getAttribute('content'), '#242066');
+  await go('/');
+  await page
+    .getByRole('navigation', { name: 'Account navigation' })
+    .getByRole('link', { name: 'Get started', exact: true })
+    .click();
   await page.getByRole('button', { name: 'Create your account' }).waitFor();
   assert.equal(await page.getByTestId('sample-label').count(), 0);
   const callback = await context.request.get(new URL('/auth/callback', origin).href, {
@@ -419,20 +679,17 @@ try {
   });
   assert.ok([302, 303, 307, 308].includes(callback.status()));
   assert.match(callback.headers().location, /\/app\?auth=sign-in&auth_error=1$/);
-  await page.goto(new URL('/invitations/accept', origin).href, { waitUntil: 'networkidle' });
+  await go('/invitations/accept');
   assert.equal(
     await page.getByRole('link', { name: 'Open sign in in a new tab' }).getAttribute('href'),
     '/app?auth=sign-in',
   );
-  const receipt = await page.goto(new URL('/receipts/shared', origin).href, {
-    waitUntil: 'networkidle',
-  });
-  assert.equal(receipt.status(), 200);
+  const shared = await go('/receipts/shared');
   assert.match(
-    await page.getByRole('main').getByRole('alert').textContent(),
+    await page.getByRole('main').getByRole('alert').innerText(),
     /invalid, expired, revoked/,
   );
-  assert.match(receipt.headers()['cache-control'], /no-store/);
+  assert.match(shared.headers()['cache-control'], /no-store/);
   const manifest = await (
     await context.request.get(new URL('/manifest.webmanifest', origin).href)
   ).json();
@@ -440,20 +697,44 @@ try {
   assert.equal(manifest.start_url, '/app');
   assert.equal(manifest.theme_color, '#242066');
   assert.equal(manifest.background_color, '#F8FAFC');
-
-  await page.goto(new URL('/app', origin).href, { waitUntil: 'networkidle' });
+  await go('/app');
   await page.getByTestId('sample-label').waitFor();
-  const nav = page.getByRole('navigation', { name: 'Main navigation' });
+  const appNav = page.getByRole('navigation', { name: 'Main navigation' });
   for (const tab of ['Orders', 'Catalogue', 'Insights', 'Settings', 'Inbox']) {
-    await nav.getByRole('button', { name: tab, exact: true }).click();
+    await appNav.getByRole('button', { name: tab, exact: true }).click();
     await page.getByRole('region', { name: `${tab} screen`, exact: true }).waitFor();
   }
   assert.deepEqual(errors, [], 'retained application runtime errors');
-  console.log(results.join('\n'));
   console.log(
-    `PASS: ${scans} whole-document axe scans; all six demos, private-data isolation, honest integration states, pricing disclosure, auth/utility routing, receipt privacy, manifest and five app destinations.`,
+    `PASS: ${scans} whole-document axe scans; all specified widths/interactions, actual sticky overlap, reduced motion, private-data isolation, honest pricing/readiness, auth/utility routes, receipt privacy and five app destinations.`,
   );
+  if (artifacts)
+    await writeFile(
+      join(artifacts, 'checks.json'),
+      JSON.stringify(
+        {
+          origin,
+          widths,
+          scans,
+          checks,
+          errors,
+          badAssets,
+          businessRequests,
+          limitations: [
+            'Local Chromium only; no live providers or payments.',
+            'Full-page mosaics temporarily normalise the header; viewport captures and geometry checks verify real sticky positioning.',
+          ],
+        },
+        null,
+        2,
+      ),
+    );
   await context.close();
 } finally {
+  if (artifacts)
+    await writeFile(
+      join(artifacts, 'last-run.json'),
+      JSON.stringify({ scans, checks, errors, badAssets, businessRequests }, null, 2),
+    );
   await browser.close();
 }

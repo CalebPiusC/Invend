@@ -1,6 +1,6 @@
 // Never cache authenticated pages, API responses, or customer data.
 // Keep the existing cache namespace; advance its version for Invend's install assets.
-const CACHE = 'selvora-static-v3';
+const CACHE = 'selvora-static-v5';
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE).then((cache) => cache.addAll(['/offline.html', '/invend-icon-192.png'])),

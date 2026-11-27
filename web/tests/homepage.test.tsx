@@ -1,331 +1,432 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Homepage } from '../components/marketing/homepage';
 import { checkSampleOffer, sampleMoney, sampleSale } from '../components/marketing/demo-data';
 import AppPage from '../app/app/page';
 import { DataProvider } from '../components/data/provider';
 
-// jsdom has no layout/scroll implementation. Real anchor clearance is checked in tests/homepage.mjs.
-const scrollIntoView = vi.fn();
-Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
-  configurable: true,
-  value: scrollIntoView,
-});
+const observers: { observe: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> }[] = [];
 beforeEach(() => {
   window.history.replaceState(null, '', '/');
-  scrollIntoView.mockClear();
+  document.body.style.overflow = '';
+  observers.length = 0;
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: vi.fn(),
+  });
+  vi.stubGlobal(
+    'IntersectionObserver',
+    class {
+      observe = vi.fn();
+      disconnect = vi.fn();
+      constructor() {
+        observers.push(this);
+      }
+    },
+  );
+  // jsdom has no native modal implementation; browser QA checks the real focus trap/inertness.
+  Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
+    configurable: true,
+    value() {
+      this.open = true;
+    },
+  });
+  Object.defineProperty(HTMLDialogElement.prototype, 'close', {
+    configurable: true,
+    value() {
+      this.open = false;
+    },
+  });
 });
 afterEach(() => {
   window.history.replaceState(null, '', '/');
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
+  document.body.style.overflow = '';
 });
-
-function sample(testId: string) {
-  return within(screen.getByTestId(testId));
-}
-async function openWorkflow(user: ReturnType<typeof userEvent.setup>, id: string) {
-  const details = document.getElementById(id) as HTMLDetailsElement;
-  await user.click(details.querySelector('summary')!);
-  expect(details.open).toBe(true);
+const sample = (testId: string) => within(screen.getByTestId(testId));
+async function chooseFeature(user: ReturnType<typeof userEvent.setup>, name: string) {
+  await user.click(screen.getByRole('tab', { name }));
+  return within(screen.getByRole('tabpanel', { name }));
 }
 
-describe('public homepage', () => {
-  it('introduces the product without mounting tenant providers or requesting business data', () => {
+describe('redesigned public homepage', () => {
+  it('isolates marketing from tenant providers and brings a phone-first illustration into the hero', () => {
     const fetcher = vi.fn();
     vi.stubGlobal('fetch', fetcher);
     render(<Homepage />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      'More sales.Still your call.',
+      'Every customer conversation. Every order. One workspace.',
     );
-    expect(screen.getByTestId('hero-sales-demo')).toHaveTextContent(
-      'Gmail · fictional conversation',
+    const hero = document.getElementById('home')!;
+    expect(hero.querySelector('img')).not.toBeNull();
+    expect(
+      within(hero)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href')),
+    ).toEqual(['/app?auth=sign-up', '#how-it-works', '/app']);
+    expect(hero).toContainElement(screen.getByTestId('workspace-preview'));
+    expect(hero).toContainElement(screen.getByTestId('hero-phone'));
+    expect(document.getElementById('home')!.nextElementSibling).toBe(
+      document.getElementById('integrations'),
     );
-    expect(screen.getByTestId('workspace-preview')).toHaveTextContent('Illustrative workspace');
+    expect(screen.getByTestId('workspace-preview')).toHaveTextContent(
+      'Fictional data · no live connections',
+    );
+    expect(screen.getByTestId('workspace-preview')).toHaveTextContent(sampleSale.vendor);
+    expect(screen.getByTestId('workflow-stack')).toHaveTextContent(sampleSale.vendor);
+    expect(screen.getByTestId('workflow-stack')).toHaveTextContent(sampleSale.orderId);
     expect(screen.queryByTestId('sample-label')).not.toBeInTheDocument();
-    expect(
-      screen
-        .getAllByRole('link', { name: /^Get started/ })
-        .every((link) => link.getAttribute('href') === '/app?auth=sign-up'),
-    ).toBe(true);
     expect(fetcher).not.toHaveBeenCalled();
   });
 
-  it('keeps enquiry, recommendation, draft and owner approval distinct without making a real sale', async () => {
-    const user = userEvent.setup();
-    const fetcher = vi.fn();
-    vi.stubGlobal('fetch', fetcher);
+  it('has the required section sequence and exactly seven ordered navigation destinations', () => {
     render(<Homepage />);
-    const hero = sample('hero-sales-demo');
-    expect(hero.getByText(/Hi! Do you have two indigo totes/)).toBeInTheDocument();
-    expect(hero.getByText(/Two are ₦24,000, plus ₦1,500 delivery/)).toBeInTheDocument();
-    expect(hero.queryByText(sampleSale.orderId)).not.toBeInTheDocument();
-    await user.click(hero.getByRole('button', { name: 'Build a sample draft' }));
-    expect(hero.getByText(sampleSale.orderId)).toBeInTheDocument();
-    expect(hero.getByText('Not yet approved')).toBeInTheDocument();
-    expect(hero.getByText('₦23,500', { exact: true })).toBeInTheDocument();
+    expect([...document.querySelectorAll('main > section')].map((section) => section.id)).toEqual([
+      'home',
+      'integrations',
+      'the-problem',
+      'the-solution',
+      'features',
+      'how-it-works',
+      'owner-control',
+      'pricing',
+      'about',
+      '',
+    ]);
+    const nav = within(screen.getByRole('navigation', { name: 'Main navigation' }));
     expect(
-      hero.getByText('Customer acceptance and payment are still pending.'),
-    ).toBeInTheDocument();
+      [...screen.getByRole('navigation', { name: 'Main navigation' }).children].map((control) => [
+        control.textContent?.trim(),
+        control.getAttribute('href') ?? control.getAttribute('aria-controls'),
+      ]),
+    ).toEqual([
+      ['Home', '#home'],
+      ['Features', 'features-mega-menu'],
+      ['How it works', '#how-it-works'],
+      ['Pricing', '#pricing'],
+      ['About', '#about'],
+    ]);
+    expect(nav.getByRole('button', { name: 'Features' })).toHaveAttribute('aria-expanded', 'false');
     expect(
-      hero.queryByRole('button', { name: 'Approve demo counter-offer' }),
-    ).not.toBeInTheDocument();
-    await user.click(hero.getByRole('button', { name: 'Review owner approval' }));
-    expect(hero.getByText('Not yet approved')).toBeInTheDocument();
-    await user.click(hero.getByRole('button', { name: 'Approve demo counter-offer' }));
-    expect(hero.getByText('Reviewed by Tola · owner')).toBeInTheDocument();
-    expect(hero.getByRole('status')).toHaveTextContent('No message was sent or order saved.');
-    expect(
-      hero.getByText('Customer acceptance and payment are still pending.'),
-    ).toBeInTheDocument();
-    await user.click(hero.getByRole('button', { name: 'Restart example' }));
-    expect(hero.getByRole('button', { name: 'Build a sample draft' })).toBeInTheDocument();
-    expect(fetcher).not.toHaveBeenCalled();
+      within(screen.getByRole('navigation', { name: 'Account navigation' }))
+        .getAllByRole('link')
+        .map((link) => [link.textContent?.trim(), link.getAttribute('href')]),
+    ).toEqual([
+      ['Sign in', '/app?auth=sign-in'],
+      ['Get started', '/app?auth=sign-up'],
+    ]);
+    expect(within(screen.getByTestId('workflow-stack')).getAllByRole('listitem')).toHaveLength(4);
+    expect(screen.getByRole('contentinfo')).toBeInTheDocument();
   });
 
-  it('keeps all six workflows compact, labelled and available without discarding local demo state', async () => {
+  it('locks the background, closes the mobile menu on selection and restores normal scrolling', async () => {
     const user = userEvent.setup();
     render(<Homepage />);
-    const explorer = screen.getByTestId('workflow-explorer');
-    const workflows = explorer.querySelectorAll<HTMLDetailsElement>('details');
-    expect(workflows).toHaveLength(6);
-    expect([...workflows].every((workflow) => !workflow.open)).toBe(true);
-    expect(
-      [...workflows].every((workflow) => workflow.getAttribute('name') === 'invend-workflows'),
-    ).toBe(true);
-    expect(explorer).toHaveTextContent('Nothing is sent or saved.');
-    await openWorkflow(user, 'negotiation');
-    await user.click(sample('negotiation-demo').getByRole('button', { name: '₦22,000' }));
-    await user.click(document.querySelector('#negotiation > summary')!);
-    expect(document.getElementById('negotiation')).not.toHaveAttribute('open');
-    await openWorkflow(user, 'negotiation');
-    expect(sample('negotiation-demo').getByText('Within the price boundary')).toBeInTheDocument();
+    const toggle = screen.getByRole('button', { name: 'Open navigation' });
+    document.body.style.overflow = 'clip';
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    const dialog = screen.getByRole('dialog', { name: 'Site navigation' });
+    const mobile = within(dialog);
+    // jsdom exposes closed <details> descendants; the real-browser test checks their hidden state.
+    expect(mobile.getAllByRole('link').filter((link) => !link.closest('details'))).toHaveLength(6);
+    expect(dialog.querySelector('details')).not.toHaveAttribute('open');
+    expect(mobile.getByRole('link', { name: /Home/ })).toHaveFocus();
+    expect(document.body.style.overflow).toBe('hidden');
+    await user.click(mobile.getByText('Features', { exact: true }));
+    await user.click(mobile.getByRole('link', { name: 'Explore all features' }));
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(dialog).not.toHaveAttribute('open');
+    expect(document.body.style.overflow).toBe('clip');
   });
 
-  it('opens a directly linked workflow and reopens it on a repeated dashboard link', async () => {
+  it('handles native dialog cancellation and returns focus to its trigger', async () => {
+    const user = userEvent.setup();
+    render(<Homepage />);
+    const toggle = screen.getByRole('button', { name: 'Open navigation' });
+    await user.click(toggle);
+    const menu = within(screen.getByRole('dialog'));
+    menu.getByRole('link', { name: 'Get started' }).focus();
+    await user.keyboard('{Tab}');
+    expect(menu.getByRole('button', { name: 'Close navigation' })).toHaveFocus();
+    await user.keyboard('{Shift>}{Tab}{/Shift}');
+    expect(menu.getByRole('link', { name: 'Get started' })).toHaveFocus();
+    fireEvent(screen.getByRole('dialog'), new Event('cancel', { cancelable: true }));
+    expect(toggle).toHaveFocus();
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(document.body.style.overflow).toBe('');
+  });
+
+  it('cleans up navigation observers and page-only scroll styling on unmount', () => {
+    const { unmount } = render(<Homepage />);
+    expect(observers).toHaveLength(3);
+    expect(observers[0].observe).toHaveBeenCalledTimes(1);
+    expect(observers[1].observe).toHaveBeenCalledTimes(10);
+    expect(observers[1].observe).toHaveBeenCalledWith(document.getElementById('home'));
+    expect(observers[1].observe).toHaveBeenCalledWith(document.getElementById('integrations'));
+    expect(observers[1].observe).toHaveBeenCalledWith(document.getElementById('the-problem'));
+    expect(observers[2].observe).toHaveBeenCalledWith(screen.getByTestId('integration-map'));
+    expect(document.documentElement.dataset.marketing).toBe('true');
+    unmount();
+    observers.forEach((observer) => expect(observer.disconnect).toHaveBeenCalled());
+    expect(document.documentElement.dataset.marketing).toBeUndefined();
+  });
+
+  it('uses a single coordinated eight-feature preview with roving keyboard selection', async () => {
+    const user = userEvent.setup();
+    render(<Homepage />);
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs).toHaveLength(8);
+    expect(screen.getAllByRole('tabpanel')).toHaveLength(1);
+    expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
+    tabs[0].focus();
+    await user.keyboard('{ArrowDown}');
+    expect(tabs[1]).toHaveFocus();
+    expect(tabs[1]).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName('AI-Assisted Customer Conversations');
+    await user.keyboard('{End}');
+    expect(tabs[7]).toHaveFocus();
+    await user.keyboard('{ArrowRight}');
+    expect(tabs[0]).toHaveFocus();
+    await user.keyboard('{ArrowLeft}');
+    expect(tabs[7]).toHaveFocus();
+    await user.keyboard('{Home}');
+    expect(tabs[0]).toHaveFocus();
+    expect(tabs.filter((tab) => tab.getAttribute('tabindex') === '0')).toHaveLength(1);
+  });
+
+  it('supports the mobile feature picker and legacy feature anchors', async () => {
     window.history.replaceState(null, '', '/#smart-catalogue');
     const user = userEvent.setup();
     render(<Homepage />);
-    const details = document.getElementById('smart-catalogue') as HTMLDetailsElement;
-    expect(details.open).toBe(true);
-    await user.click(details.querySelector('summary')!);
-    expect(details.open).toBe(false);
-    const link = screen
-      .getByTestId('workspace-preview')
-      .querySelector('a[href="#smart-catalogue"]')!;
-    await user.click(link);
-    expect(details.open).toBe(true);
-    await user.click(details.querySelector('summary')!);
-    await user.click(link);
-    expect(details.open).toBe(true);
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName('Photo-First Catalogue');
+    await user.selectOptions(screen.getByRole('combobox', { name: /Choose a feature/ }), '6');
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName('Business Insights');
+    window.history.replaceState(null, '', '/#team-management');
+    fireEvent(window, new HashChangeEvent('hashchange'));
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName('Team Management');
+    expect(document.getElementById('team-management')).not.toBeNull();
   });
 
-  it('shows roadmap priority rather than suggesting the illustrated integrations are connected', () => {
+  it('changes customer context while keeping channel previews honest', async () => {
+    const user = userEvent.setup();
+    render(<Homepage />);
+    const demo = sample('tour-inbox');
+    await user.click(demo.getByRole('button', { name: /Lola Adeyemi/ }));
+    expect(demo.getByText('WhatsApp · fictional conversation')).toBeInTheDocument();
+    expect(demo.getByText(/12 indigo totes at ₦12,000/)).toBeInTheDocument();
+    await user.click(demo.getByRole('button', { name: /Chidi Okafor/ }));
+    expect(demo.getByText(/Yaba, Lagos · delivery enquiry/)).toBeInTheDocument();
+    expect(demo.getByText(/still need live-provider validation/)).toBeInTheDocument();
+    await chooseFeature(user, 'Business Insights');
+    await chooseFeature(user, 'Smart Customer Inbox');
+    expect(demo.getByRole('button', { name: /Chidi Okafor/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('checks exact minimum prices without sending anything', async () => {
+    const fetcher = vi.fn();
+    vi.stubGlobal('fetch', fetcher);
+    const user = userEvent.setup();
+    render(<Homepage />);
+    const panel = await chooseFeature(user, 'AI-Assisted Customer Conversations');
+    expect(panel.getByRole('status')).toHaveTextContent('₦2,000 below your minimum');
+    await user.click(panel.getByRole('button', { name: '₦22,000' }));
+    expect(panel.getByRole('status')).toHaveTextContent('Inside your price boundary');
+    expect(panel.getByRole('status')).toHaveTextContent('this is not a sale');
+    await user.click(panel.getByRole('button', { name: '₦20,000' }));
+    expect(panel.getByRole('status')).toHaveTextContent('Owner review required');
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('requires a fresh review after stock edits and never saves a real catalogue item', async () => {
+    const fetcher = vi.fn();
+    vi.stubGlobal('fetch', fetcher);
+    const user = userEvent.setup();
+    render(<Homepage />);
+    const panel = await chooseFeature(user, 'Photo-First Catalogue');
+    await user.click(panel.getByRole('button', { name: 'Review sample details' }));
+    expect(panel.getByRole('checkbox')).toHaveFocus();
+    expect(panel.getByRole('button', { name: 'Confirm sample product' })).toBeDisabled();
+    await user.click(panel.getByRole('checkbox'));
+    await user.click(panel.getByRole('button', { name: 'Increase sample stock' }));
+    expect(panel.getByLabelText('Sample stock count')).toHaveTextContent('13');
+    expect(panel.getByRole('checkbox')).not.toBeChecked();
+    expect(panel.getByRole('button', { name: 'Confirm sample product' })).toBeDisabled();
+    await user.click(panel.getByRole('checkbox'));
+    await user.click(panel.getByRole('button', { name: 'Confirm sample product' }));
+    expect(panel.getByRole('status', { name: 'Sample product review' })).toHaveTextContent(
+      'No product or photo was saved',
+    );
+    expect(panel.getByRole('status', { name: 'Sample product review' })).toHaveFocus();
+    await user.click(panel.getByRole('button', { name: 'Reset' }));
+    expect(panel.getByRole('button', { name: 'Review sample details' })).toBeEnabled();
+    expect(panel.getByRole('button', { name: 'Review sample details' })).toHaveFocus();
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('keeps orders in a reviewable, unpaid state before the payment step', async () => {
+    const user = userEvent.setup();
+    render(<Homepage />);
+    const panel = await chooseFeature(user, 'Order Management');
+    expect(panel.getByText('₦23,500', { exact: true })).toBeInTheDocument();
+    await user.click(panel.getByRole('button', { name: 'Create sample draft' }));
+    expect(panel.getByRole('listitem', { current: 'step' })).toHaveTextContent('Order draft');
+    await user.click(panel.getByRole('button', { name: 'Review sample order' }));
+    expect(panel.getByText('Payment not confirmed', { exact: true })).toBeInTheDocument();
+    await user.click(panel.getByRole('button', { name: 'Explore payment tracking' }));
+    expect(screen.getByRole('tabpanel')).toHaveAccessibleName('Payment Tracking');
+    expect(screen.getByRole('tab', { name: 'Payment Tracking' })).toHaveFocus();
+  });
+
+  it('never verifies a screenshot, requires explicit vendor confirmation, and revokes the receipt on reset', async () => {
+    const fetcher = vi.fn();
+    vi.stubGlobal('fetch', fetcher);
+    const user = userEvent.setup();
+    render(<Homepage />);
+    let receipt = await chooseFeature(user, 'Digital Receipts');
+    expect(receipt.queryByText('SAMPLE RECEIPT', { exact: true })).not.toBeInTheDocument();
+    await user.click(receipt.getByRole('button', { name: 'Review sample payment' }));
+    const payment = within(screen.getByRole('tabpanel', { name: 'Payment Tracking' }));
+    await user.click(payment.getByRole('button', { name: 'Test a payment screenshot' }));
+    expect(payment.getByRole('status')).toHaveTextContent('Payment is still unconfirmed');
+    expect(payment.getByRole('button', { name: 'Record sample confirmation' })).toBeDisabled();
+    await user.click(payment.getByRole('checkbox', { name: /verified this sample payment/ }));
+    await user.click(payment.getByRole('button', { name: 'Record sample confirmation' }));
+    expect(payment.getByRole('status')).toHaveTextContent('No real transfer was verified');
+    await user.click(payment.getByRole('button', { name: 'View sample receipt' }));
+    receipt = within(screen.getByRole('tabpanel', { name: 'Digital Receipts' }));
+    expect(receipt.getByText('SAMPLE RECEIPT', { exact: true })).toBeInTheDocument();
+    expect(receipt.getByText('₦23,500', { exact: true })).toBeInTheDocument();
+    expect(receipt.getByText(/Not proof of a real payment/)).toBeInTheDocument();
+    await chooseFeature(user, 'Payment Tracking');
+    await user.click(payment.getByRole('button', { name: 'Reset' }));
+    receipt = await chooseFeature(user, 'Digital Receipts');
+    expect(receipt.queryByText('SAMPLE RECEIPT', { exact: true })).not.toBeInTheDocument();
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('updates fictional chart values and exposes a textual equivalent', async () => {
+    const user = userEvent.setup();
+    render(<Homepage />);
+    const panel = await chooseFeature(user, 'Business Insights');
+    expect(panel.getByRole('img')).toHaveAccessibleName(
+      /Fictional orders: Mon 2, Tue 3, Wed 1, Thu 4, Fri 3. Total 13/,
+    );
+    await user.click(panel.getByRole('button', { name: 'Conversations' }));
+    expect(panel.getByRole('img')).toHaveAccessibleName(
+      /Fictional conversations: Mon 4, Tue 5, Wed 3, Thu 6, Fri 4. Total 22/,
+    );
+    expect(panel.getByRole('img')).toHaveAccessibleName(/Not business performance/);
+    expect(panel.getByText('Sample data only')).toBeInTheDocument();
+  });
+
+  it('demonstrates assignment and human takeover without transferring owner authority', async () => {
+    const user = userEvent.setup();
+    render(<Homepage />);
+    const panel = await chooseFeature(user, 'Team Management');
+    await user.selectOptions(panel.getByRole('combobox'), 'Bisi');
+    expect(panel.getByRole('status')).toHaveTextContent('Assigned to Bisi in this demo');
+    await user.click(panel.getByRole('button', { name: 'Take over sample conversation' }));
+    expect(panel.getByText('Assistant replies paused', { exact: true })).toBeInTheDocument();
+    await user.click(panel.getByRole('button', { name: 'Hand back to assistant' }));
+    expect(panel.getByRole('status')).toHaveTextContent('Rule-bound assistance can resume');
+    expect(panel.getByText(/Owner · role protected/)).toBeInTheDocument();
+    expect(panel.getByText(/does not transfer owner authority/)).toBeInTheDocument();
+  });
+
+  it('supports approve, guarded edit and reject with explicit no-send results', async () => {
+    const fetcher = vi.fn();
+    vi.stubGlobal('fetch', fetcher);
+    const user = userEvent.setup();
+    render(<Homepage />);
+    const demo = sample('owner-decision-demo');
+    await user.click(demo.getByRole('button', { name: 'Edit' }));
+    const input = demo.getByRole('textbox', { name: /Counter-offer/ });
+    await user.clear(input);
+    await user.type(input, '20000');
+    await user.click(demo.getByRole('button', { name: 'Save sample edit' }));
+    expect(demo.getByRole('alert')).toHaveTextContent('between ₦22,000 and ₦24,000');
+    await user.clear(input);
+    await user.type(input, '23000.50');
+    await user.click(demo.getByRole('button', { name: 'Save sample edit' }));
+    expect(demo.getByRole('status')).toHaveTextContent('Still waiting for your approval');
+    expect(demo.getByText(/for ₦23,000.50, plus/)).toBeInTheDocument();
+    await user.click(demo.getByRole('button', { name: 'Approve' }));
+    expect(demo.getByRole('status')).toHaveTextContent(
+      'No message sent. No order saved. Customer acceptance and payment are still pending.',
+    );
+    await user.click(demo.getByRole('button', { name: 'Reset example' }));
+    await user.click(demo.getByRole('button', { name: 'Reject' }));
+    expect(demo.getByRole('status')).toHaveTextContent('The proposed reply was not sent');
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it.each(['', 'not a price', '-22000', '22000.001', '25000'])(
+    'rejects an invalid or out-of-bounds edited offer: %s',
+    async (value) => {
+      const user = userEvent.setup();
+      render(<Homepage />);
+      const demo = sample('owner-decision-demo');
+      await user.click(demo.getByRole('button', { name: 'Edit' }));
+      const input = demo.getByRole('textbox', { name: /Counter-offer/ });
+      await user.clear(input);
+      if (value) await user.type(input, value);
+      await user.click(demo.getByRole('button', { name: 'Save sample edit' }));
+      expect(demo.getByRole('alert')).toBeInTheDocument();
+      expect(demo.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument();
+    },
+  );
+
+  it('discloses every integration status and never substitutes sample offers for real pricing', async () => {
+    const user = userEvent.setup();
     render(<Homepage />);
     const map = sample('integration-map');
-    expect(map.getByText('01 / First priority')).toBeInTheDocument();
-    expect(map.getByText('02 / Next priority')).toBeInTheDocument();
-    expect(map.getAllByText('Live validation pending')).toHaveLength(2);
-    expect(map.getAllByText('Planned · not available')).toHaveLength(2);
-    expect(map.getByText(/lines do not represent live connections/)).toBeInTheDocument();
-    expect(screen.getByTestId('workspace-preview')).toHaveTextContent('No live connections.');
-  });
-
-  it('labels every pricing concept as a preview, not a subscription purchase', () => {
-    render(<Homepage />);
-    const pricing = within(document.getElementById('pricing')!);
-    for (const name of ['Starter', 'Growth', 'Scale']) {
-      const plan = pricing.getByRole('article', { name: `${name} plan preview` });
-      expect(plan).toHaveTextContent('Pricing to be confirmed');
-      expect(within(plan).getByRole('link')).toHaveAttribute('href', '/app');
-    }
-    expect(
-      pricing.getByText(/Illustrative plan previews, not established plans/),
-    ).toBeInTheDocument();
+    expect(map.getAllByText('Coming soon')).toHaveLength(3);
+    expect(map.getAllByText('Planned')).toHaveLength(3);
+    expect(map.getAllByText('Available')).toHaveLength(1);
+    await user.click(document.querySelector('#integration-readiness > summary')!);
+    const integration = sample('integration-status');
+    expect(integration.getAllByRole('listitem')).toHaveLength(7);
+    expect(integration.getAllByRole('listitem')[0]).toHaveTextContent('Second major channel');
+    expect(integration.getAllByRole('listitem')[1]).toHaveTextContent('First planned live channel');
+    expect(integration.getAllByText('Coming soon')).toHaveLength(3);
+    expect(integration.getAllByRole('listitem')[0]).toHaveTextContent('Meta approval');
+    expect(integration.getAllByRole('listitem')[1]).toHaveTextContent(
+      'live acceptance remain pending',
+    );
+    expect(screen.getByTestId('integration-status')).toHaveTextContent(
+      'TikTok messaging remains research-only',
+    );
+    expect(screen.getByTestId('integration-status')).toHaveTextContent(
+      'SMS is exploratory and unsupported',
+    );
+    expect(integration.getAllByRole('listitem')[6]).toHaveTextContent(
+      'CSV/XLSX export is not implemented',
+    );
+    expect(document.getElementById('pricing')).toHaveTextContent('Not yet published');
     expect(document.getElementById('pricing')).not.toHaveTextContent(
-      /\$\d|most popular|free trial/i,
+      /Starter|Growth|Scale|₦|free trial|recommended|most popular/i,
     );
+    expect(document.getElementById('about')).toHaveTextContent('AI Commerce Growth Platform');
   });
 
-  it('opens grouped feature navigation with a keyboard and restores focus with Escape', async () => {
-    const user = userEvent.setup();
+  it('keeps all auth, section and footer links real without invented contact or legal destinations', () => {
     render(<Homepage />);
-    const mobile = screen.getByRole('button', { name: 'Open navigation' });
-    await user.click(mobile);
-    expect(mobile).toHaveAttribute('aria-expanded', 'true');
-    const features = screen.getByRole('button', { name: 'Features' });
-    features.focus();
-    await user.keyboard('{ArrowDown}');
-    const panel = document.getElementById('feature-navigation')!;
-    expect(within(panel).getAllByRole('link')).toHaveLength(7);
-    expect(within(panel).getByRole('link', { name: /AI Sales Assistant/ })).toHaveFocus();
-    await user.keyboard('{Escape}');
-    expect(features).toHaveAttribute('aria-expanded', 'false');
-    expect(features).toHaveFocus();
-    await user.keyboard('{ArrowUp}');
-    expect(within(panel).getByRole('link', { name: /Integrations/ })).toHaveFocus();
-    await user.keyboard('{Escape}{Escape}');
-    expect(mobile).toHaveAttribute('aria-expanded', 'false');
-    expect(mobile).toHaveFocus();
-  });
-
-  it('closes navigation on a feature choice and gives every public link a real destination', async () => {
-    const user = userEvent.setup();
-    render(<Homepage />);
-    await user.click(screen.getByRole('button', { name: 'Open navigation' }));
-    await user.click(screen.getByRole('button', { name: 'Features' }));
-    await user.click(screen.getByRole('link', { name: /Smart Catalogue Start/ }));
-    expect(screen.getByRole('button', { name: 'Open navigation' })).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    );
     for (const anchor of document.querySelectorAll<HTMLAnchorElement>('a[href]')) {
       const href = anchor.getAttribute('href')!;
       if (href.startsWith('#')) expect(document.getElementById(href.slice(1))).not.toBeNull();
       else expect(['/app', '/app?auth=sign-in', '/app?auth=sign-up']).toContain(href);
     }
-  });
-
-  it('escalates a below-floor offer, uses the exact minimum and never sends a reply', async () => {
-    const user = userEvent.setup();
-    const fetcher = vi.fn();
-    vi.stubGlobal('fetch', fetcher);
-    render(<Homepage />);
-    await openWorkflow(user, 'negotiation');
-    const demo = sample('negotiation-demo');
-    expect(demo.getByText('Owner review required')).toBeInTheDocument();
-    expect(demo.getByText('₦2,000 below your minimum.')).toBeInTheDocument();
-    await user.click(demo.getByRole('button', { name: 'Approve sample counter-offer' }));
-    expect(demo.getByRole('status')).toHaveTextContent(
-      'No message was sent and no order was changed.',
-    );
-    await user.click(demo.getByRole('button', { name: '₦22,000' }));
-    expect(demo.getByText('Within the price boundary')).toBeInTheDocument();
     expect(
-      demo.queryByRole('button', { name: 'Approve sample counter-offer' }),
-    ).not.toBeInTheDocument();
-    await user.click(demo.getByRole('button', { name: 'Reset demo' }));
-    expect(demo.getByText('Owner review required')).toBeInTheDocument();
-    expect(fetcher).not.toHaveBeenCalled();
-  });
-
-  it('requires photo-detail review and explicit confirmation without saving a real product', async () => {
-    const user = userEvent.setup();
-    const fetcher = vi.fn();
-    vi.stubGlobal('fetch', fetcher);
-    render(<Homepage />);
-    await openWorkflow(user, 'smart-catalogue');
-    const demo = sample('catalogue-demo');
-    await user.click(demo.getByRole('button', { name: 'Review sample details' }));
-    expect(demo.getByRole('button', { name: 'Confirm sample product' })).toBeDisabled();
-    await user.click(demo.getByRole('button', { name: 'Increase sample stock' }));
-    expect(demo.getByRole('status', { name: 'Sample stock count' })).toHaveTextContent('13');
-    await user.click(demo.getByRole('checkbox', { name: /checked these sample details/ }));
-    await user.click(demo.getByRole('button', { name: 'Confirm sample product' }));
-    expect(demo.getByText(/No product or photo was saved/)).toBeInTheDocument();
-    expect(demo.getByRole('button', { name: 'Confirmed in the demo' })).toBeDisabled();
-    await user.click(demo.getByRole('button', { name: 'Reset demo' }));
-    expect(demo.getByRole('button', { name: 'Review sample details' })).toBeEnabled();
-    expect(fetcher).not.toHaveBeenCalled();
-  });
-
-  it('selects customer context without claiming a planned channel is connected', async () => {
-    const user = userEvent.setup();
-    render(<Homepage />);
-    await openWorkflow(user, 'unified-inbox');
-    const demo = sample('inbox-demo');
-    await user.click(demo.getByRole('button', { name: /Chidi Okafor/ }));
-    expect(demo.getByText('Instagram · fictional conversation')).toBeInTheDocument();
-    expect(demo.getByText('Asked about delivery · Yaba')).toBeInTheDocument();
-    expect(demo.getByText(/including a planned integration/)).toBeInTheDocument();
-    await user.click(demo.getByRole('button', { name: /Lola Adeyemi/ }));
-    expect(demo.getByText('WhatsApp · fictional conversation')).toBeInTheDocument();
-    await user.click(demo.getByRole('button', { name: /Amaka Bello/ }));
-    expect(demo.getByText('Gmail / Email · fictional conversation')).toBeInTheDocument();
-  });
-
-  it('requires sample consent before queuing a follow-up and clearly labels manual lead stages', async () => {
-    const user = userEvent.setup();
-    render(<Homepage />);
-    await openWorkflow(user, 'lead-management');
-    const demo = sample('lead-demo');
-    expect(demo.getByRole('button', { name: 'Queue sample follow-up' })).toBeDisabled();
-    await user.click(demo.getByRole('button', { name: /Ready to buy/ }));
-    expect(demo.getByRole('button', { name: /Ready to buy/ })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
-    await user.click(demo.getByRole('checkbox'));
-    await user.click(demo.getByRole('button', { name: 'Queue sample follow-up' }));
-    expect(demo.getByRole('status')).toHaveTextContent('No message will be sent.');
-    expect(
-      demo.getByText(/Automatic live lead qualification is still in development/),
-    ).toBeInTheDocument();
-  });
-
-  it('never turns a screenshot into payment confirmation and gates the sample receipt on vendor confirmation', async () => {
-    const user = userEvent.setup();
-    const fetcher = vi.fn();
-    vi.stubGlobal('fetch', fetcher);
-    render(<Homepage />);
-    await openWorkflow(user, 'orders-and-payments');
-    const demo = sample('order-demo');
-    expect(demo.getByText('₦23,500', { exact: true })).toBeInTheDocument();
-    await user.click(demo.getByRole('button', { name: 'Create sample draft' }));
-    await user.click(demo.getByRole('button', { name: 'Review payment step' }));
-    await user.click(demo.getByRole('button', { name: 'Test a payment screenshot' }));
-    expect(demo.getByText('Payment not confirmed', { exact: true })).toBeInTheDocument();
-    expect(demo.getByRole('button', { name: 'Record sample confirmation' })).toBeDisabled();
-    expect(demo.queryByText('SAMPLE RECEIPT', { exact: true })).not.toBeInTheDocument();
-    await user.click(demo.getByRole('checkbox', { name: /verified this sample payment/ }));
-    await user.click(demo.getByRole('button', { name: 'Record sample confirmation' }));
-    expect(demo.getByText('SAMPLE RECEIPT', { exact: true })).toBeInTheDocument();
-    expect(
-      demo.getByText('Illustrative receipt. Not proof of a real payment.'),
-    ).toBeInTheDocument();
-    await user.click(demo.getByRole('button', { name: 'Reset demo' }));
-    expect(demo.getByText('Payment not confirmed', { exact: true })).toBeInTheDocument();
-    expect(fetcher).not.toHaveBeenCalled();
-  });
-
-  it('shows takeover, hand-back, staff assignment and owner accountability without mutating an account', async () => {
-    const user = userEvent.setup();
-    const fetcher = vi.fn();
-    vi.stubGlobal('fetch', fetcher);
-    render(<Homepage />);
-    await openWorkflow(user, 'team-management');
-    const demo = sample('control-demo');
-    await user.click(demo.getByRole('button', { name: 'Take over demo conversation' }));
-    expect(demo.getByText('AI replies are paused in this demonstration.')).toBeInTheDocument();
-    await user.click(demo.getByRole('button', { name: 'Hand back to assistant' }));
-    expect(demo.getByRole('status')).toHaveTextContent('Rule-bound assistant replies can resume.');
-    await user.selectOptions(demo.getByRole('combobox'), 'Bisi');
-    expect(demo.getByRole('status')).toHaveTextContent('assigned to Bisi');
-    await user.click(demo.getByRole('button', { name: 'Approve sample reply' }));
-    expect(demo.getByText('REVIEWED BY TOLA · OWNER')).toBeInTheDocument();
-    expect(demo.getByRole('status')).toHaveTextContent('No message was sent.');
-    expect(fetcher).not.toHaveBeenCalled();
-  });
-
-  it('discloses all six integration states and does not invent software prices', async () => {
-    const user = userEvent.setup();
-    render(<Homepage />);
-    await openWorkflow(user, 'integration-readiness');
-    const demo = sample('integration-status');
-    expect(demo.getAllByRole('listitem')).toHaveLength(6);
-    expect(demo.getAllByRole('listitem')[0]).toHaveTextContent('Gmail / Email');
-    expect(demo.getAllByRole('listitem')[1]).toHaveTextContent('WhatsApp');
-    expect(demo.getAllByText('Built · live validation pending')).toHaveLength(2);
-    expect(demo.getAllByText('Planned', { exact: true })).toHaveLength(2);
-    expect(demo.getByText('SMS', { exact: true }).closest('li')).toHaveTextContent(
-      'Exploring · not supported',
-    );
-    expect(demo.getByText('TikTok', { exact: true }).closest('li')).toHaveTextContent(
-      'Under review',
-    );
-    expect(document.getElementById('pricing')).toHaveTextContent('not published in this preview');
-    expect(document.getElementById('about')).toHaveTextContent('AI Commerce Growth Platform');
+      screen
+        .getAllByRole('link', { name: /^Get started/i })
+        .every((link) => link.getAttribute('href') === '/app?auth=sign-up'),
+    ).toBe(true);
   });
 });
 
@@ -344,12 +445,13 @@ describe('fictional offer guardrails', () => {
   it.each([0, -1, 0.5, NaN, Infinity])('rejects invalid demo money: %s', (offer) => {
     expect(() => checkSampleOffer(offer)).toThrow(RangeError);
   });
-  it('keeps the narrative order total consistent in integer kobo', () => {
+  it('keeps the narrative order total and fractional edits exact', () => {
     expect(
       sampleMoney(
         sampleSale.quantity * sampleSale.minimumUnitPriceKobo + sampleSale.deliveryFeeKobo,
       ),
     ).toBe('₦23,500');
+    expect(sampleMoney(2_300_050)).toBe('₦23,000.50');
   });
 });
 

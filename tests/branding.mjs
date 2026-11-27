@@ -50,9 +50,26 @@ for (const width of [390, 1440]) {
       if (artifacts) await page.screenshot({ path: join(artifacts, `${surface}-${width}.png`) });
     };
 
+    // The homepage now registers the existing worker for deliberate PWA installation.
+    // Seed historical caches on a static same-origin page BEFORE that first registration.
+    // This still proves a real cache upgrade, not a manually triggered activation after the fact.
+    await goto('/offline.html');
+    await page.evaluate(async () => {
+      await (
+        await caches.open('selvora-static-v1')
+      ).put('/offline.html', new Response('<title>Selvora — Offline</title>Old offline copy'));
+      await (
+        await caches.open('selvora-static-v3')
+      ).put('/invend-icon-192.png', new Response('previous bag icon'));
+      await (
+        await caches.open('selvora-static-v4')
+      ).put('/invend-icon-192.png', new Response('previous cart-first icon'));
+      await (await caches.open('unrelated-test-cache')).put('/unrelated', new Response('keep'));
+    });
     await goto('/');
     for (const logo of await page.getByRole('link', { name: 'Invend home' }).all()) {
-      assert.equal(await logo.innerText(), 'invend');
+      const isNavigation = await logo.evaluate((element) => Boolean(element.closest('header')));
+      assert.equal(await logo.innerText(), isNavigation ? 'Invend' : 'invend');
     }
     assert.equal(await page.locator('link[rel="icon"][href="/favicon.svg"]').count(), 1);
     assert.equal(await page.locator('link[rel="icon"][href="/favicon.ico"]').count(), 1);
@@ -65,18 +82,6 @@ for (const width of [390, 1440]) {
       'Invend',
     );
     await check('homepage');
-
-    // Seed the previous offline cache in this isolated browser context before registration.
-    // Also prove that updating this app does not delete an unrelated cache.
-    await page.evaluate(async () => {
-      await (
-        await caches.open('selvora-static-v1')
-      ).put('/offline.html', new Response('<title>Selvora — Offline</title>Old offline copy'));
-      await (
-        await caches.open('selvora-static-v2')
-      ).put('/invend-icon-192.png', new Response('previous bag icon'));
-      await (await caches.open('unrelated-test-cache')).put('/unrelated', new Response('keep'));
-    });
 
     await goto('/app?auth=sign-in');
     await page.getByRole('heading', { name: 'Welcome back.' }).waitFor();
@@ -137,7 +142,7 @@ for (const width of [390, 1440]) {
     await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
     const cachesState = await page.evaluate(async () => {
       const names = await caches.keys();
-      const cache = await caches.open('selvora-static-v3');
+      const cache = await caches.open('selvora-static-v5');
       return {
         names,
         urls: (await cache.keys()).map((request) => new URL(request.url).pathname).sort(),
@@ -145,7 +150,9 @@ for (const width of [390, 1440]) {
     });
     assert.ok(!cachesState.names.includes('selvora-static-v1'));
     assert.ok(!cachesState.names.includes('selvora-static-v2'));
-    assert.ok(cachesState.names.includes('selvora-static-v3'));
+    assert.ok(!cachesState.names.includes('selvora-static-v3'));
+    assert.ok(!cachesState.names.includes('selvora-static-v4'));
+    assert.ok(cachesState.names.includes('selvora-static-v5'));
     assert.ok(cachesState.names.includes('unrelated-test-cache'));
     assert.deepEqual(cachesState.urls, ['/invend-icon-192.png', '/offline.html']);
     for (const asset of [

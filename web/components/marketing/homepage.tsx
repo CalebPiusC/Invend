@@ -1,47 +1,46 @@
-import { ArrowRight, ArrowUpRight, ArrowUp, ChevronDown, ShieldCheck } from 'lucide-react';
+import {
+  ArrowRight,
+  ArrowUp,
+  ArrowUpRight,
+  Check,
+  ChevronDown,
+  CircleHelp,
+  FileText,
+  Inbox,
+  LockKeyhole,
+  Mail,
+  MessageCircle,
+  Package,
+  ShieldCheck,
+  SlidersHorizontal,
+} from 'lucide-react';
 import { Brand } from './brand';
+import { BrandIcon } from '../brand-icon';
 import { HomeHeader } from './home-header';
-import { SignatureScene } from './signature-scene';
-import { WorkspacePreview } from './workspace-preview';
-import { WorkflowExplorer } from './workflow-explorer';
-import { IntegrationMap, IntegrationStatus } from './integration-status';
+import { HomeHero } from './home-hero';
+import { FeatureTour } from './feature-tour';
+import { WorkflowSteps } from './workflow-steps';
+import { OwnerControl } from './owner-control';
+import { InteractiveIntegrations } from './integration-status';
 import styles from './homepage.module.css';
 
 const questions = [
   [
     'Does Invend decide my prices?',
-    'No. Your catalogue and minimum prices are the source of truth. Deterministic checks put your business facts and pricing rules before the reply. A request outside those boundaries needs a human decision; missing information means asking, not inventing an answer.',
-  ],
-  [
-    'Which integrations come first?',
-    'Gmail is our first priority, followed by WhatsApp. Both have implementations awaiting live-provider acceptance. Instagram and Facebook Messenger come later and are planned, not available connections. TikTok is under review; SMS is exploratory and not supported.',
+    'No. Your catalogue and minimum prices are the source of truth. Deterministic checks put business facts and pricing rules before a reply. Discounts outside those boundaries, complaints, refunds and uncertain answers need a human decision.',
   ],
   [
     'Can a photo create my catalogue automatically?',
-    'The photo-first review workflow is demonstrated here. Live extraction and durable catalogue photo storage are still in development. Product names, variants, prices and stock must be checked and confirmed by the vendor.',
+    'Not in the current live product. The photo-first review workflow is demonstrated here; extraction and durable catalogue photo storage are still in development. You supply and confirm the names, variants, prices and stock.',
   ],
   [
-    'Who receives and confirms customer payments?',
-    'Your customer pays your business directly. You confirm payment, or use an appropriately verified integration. A screenshot or a customer saying “I’ve paid” is not verification. Paystack is for Invend subscriptions, not collecting your customers’ money.',
+    'Who receives customer payments?',
+    'Your customer pays your business directly. You confirm payment, or use an appropriately verified integration. A screenshot or “I’ve paid” message is not verification. Paystack is for Invend subscriptions, not collecting your customers’ money.',
   ],
-] as const;
-
-const plans = [
-  {
-    name: 'Starter',
-    description: 'For finding your rhythm and organising the everyday.',
-    label: 'A considered beginning',
-  },
-  {
-    name: 'Growth',
-    description: 'For a growing business and the next chapter of your team.',
-    label: 'Room for what’s next',
-  },
-  {
-    name: 'Scale',
-    description: 'For busier operations with more people in the conversation.',
-    label: 'A bigger conversation',
-  },
+  [
+    'Can I explore before connecting my business?',
+    'Yes. The sample workspace uses fictional data to demonstrate the workflows. No customer messages are sent and no real payments are collected. Live channel availability is separate from the sample experience.',
+  ],
 ] as const;
 
 export function Homepage() {
@@ -52,189 +51,301 @@ export function Homepage() {
       </a>
       <HomeHeader />
       <main id="main-content" tabIndex={-1}>
-        <section id="home" className={styles.hero} aria-labelledby="home-title">
-          <div className={styles.container}>
-            <div className={styles.heroGrid}>
-              <div className={styles.heroCopy}>
-                <p className={styles.eyebrow}>YOUR BUSINESS, WORKING BETTER.</p>
-                <h1 id="home-title">
-                  More sales.
-                  <br />
-                  <span>Still your call.</span>
-                </h1>
-                <p className={styles.heroDescription}>
-                  Turn customer conversations into sales. Let Invend help with the replies,
-                  recommendations and order details—while you stay in control of your business.
-                </p>
-                <div className={styles.heroActions}>
-                  <a href="/app?auth=sign-up" className={styles.primaryButton}>
-                    Get started <ArrowRight size={16} aria-hidden="true" />
-                  </a>
-                  <a className={styles.secondaryButton} href="#how-it-works">
-                    See Invend in action <ArrowUpRight size={16} aria-hidden="true" />
-                  </a>
-                </div>
-                <p className={styles.heroNote}>
-                  <ShieldCheck size={14} aria-hidden="true" /> Your prices. Your approvals. Always
-                  your business.
-                </p>
-              </div>
-              <SignatureScene />
-            </div>
-            <div
-              className={styles.channelStrip}
-              aria-label="Integration priorities, not live connections"
-            >
-              <p>
-                BUILT FOR THE WAY YOU SELL<span>Our integration priorities</span>
-              </p>
-              <div>
-                <strong>Gmail</strong>
-                <span>01 / First priority</span>
-              </div>
-              <div>
-                <strong>WhatsApp</strong>
-                <span>02 / Next priority</span>
-              </div>
-              <div>
-                <strong>Instagram & Facebook</strong>
-                <span>Later / Planned</span>
-              </div>
-              <a href="#integrations">
-                See what’s ready <ArrowUpRight size={14} aria-hidden="true" />
-              </a>
-            </div>
-          </div>
-        </section>
+        <HomeHero />
+        <InteractiveIntegrations />
 
-        <section
-          id="ai-sales-assistant"
-          className={styles.workspaceSection}
-          aria-labelledby="workspace-title"
-        >
-          <div className={styles.container}>
-            <div className={styles.sectionHead}>
-              <div>
-                <p className={styles.eyebrow}>A CLEARER VIEW. A STRONGER BUSINESS.</p>
-                <h2 id="workspace-title">
-                  Your sales operation.
-                  <br />
-                  One intelligent workspace.
-                </h2>
-              </div>
-              <p>
-                Every conversation, product fact and order.
+        <section id="the-problem" className={styles.problemSection} aria-labelledby="problem-title">
+          <div className={`${styles.container} ${styles.problemGrid}`}>
+            <div className={styles.sectionCopy}>
+              <p className={styles.eyebrow}>SOUND FAMILIAR?</p>
+              <h2 id="problem-title">
+                The conversation moves.
                 <br />
-                Connected, not complicated.
-              </p>
-            </div>
-            <WorkspacePreview />
-            <WorkflowExplorer />
-          </div>
-        </section>
-
-        <section
-          id="integrations"
-          className={styles.integrationsSection}
-          aria-labelledby="integrations-title"
-        >
-          <div className={styles.container}>
-            <div className={styles.integrationsGrid}>
-              <div className={styles.integrationCopy}>
-                <p className={styles.eyebrow}>BETTER TOGETHER.</p>
-                <h2 id="integrations-title">
-                  Your conversations.
-                  <br />
-                  One centre of gravity.
-                </h2>
-                <p>
-                  Start with Gmail. Bring WhatsApp next. Instagram and Facebook follow later—not
-                  before they’re ready.
-                </p>
-                <p className={styles.integrationNote}>
-                  One workspace is the direction. Each connection still needs its own permissions
-                  and live validation.
-                </p>
-                <a href="#integration-readiness" className={styles.secondaryButton}>
-                  Explore integration status <ArrowRight size={15} aria-hidden="true" />
-                </a>
-              </div>
-              <IntegrationMap />
-            </div>
-            <IntegrationStatus />
-          </div>
-        </section>
-
-        <section id="pricing" className={styles.pricingSection} aria-labelledby="pricing-title">
-          <div className={styles.container}>
-            <div className={styles.sectionHead}>
-              <div>
-                <p className={styles.eyebrow}>SIMPLE PRICING. SERIOUS POSSIBILITIES.</p>
-                <h2 id="pricing-title">Room to grow. A plan to match.</h2>
-              </div>
-              <a href="/app" className={styles.textLink}>
-                Explore the sample <ArrowUpRight size={16} aria-hidden="true" />
-              </a>
-            </div>
-            <p className={styles.pricingIntro}>
-              Illustrative plan previews, not established plans or purchase offers. Subscription
-              prices and usage allowances are not published in this preview. Demo product prices are
-              not subscription quotes.
-            </p>
-            <div className={styles.plans}>
-              {plans.map((plan) => (
-                <article
-                  key={plan.name}
-                  className={`${styles.plan} ${plan.name === 'Growth' ? styles.featuredPlan : ''}`}
-                  aria-label={`${plan.name} plan preview`}
-                >
-                  <div className={styles.planTop}>
-                    <h3>{plan.name}</h3>
-                    {plan.name === 'Growth' && <span>PLAN PREVIEW</span>}
-                  </div>
-                  <p className={styles.planPromise}>{plan.label}</p>
-                  <p className={styles.planPrice}>Pricing to be confirmed</p>
-                  <p className={styles.planDescription}>{plan.description}</p>
-                  <a
-                    href="/app"
-                    className={
-                      plan.name === 'Growth' ? styles.primaryButton : styles.secondaryButton
-                    }
-                  >
-                    Explore the demo <ArrowRight size={15} aria-hidden="true" />
-                  </a>
-                </article>
-              ))}
-            </div>
-            <p className={styles.paymentNote}>
-              <ShieldCheck size={16} aria-hidden="true" /> Customer payments go directly to your
-              business. Your Invend subscription is separate.
-            </p>
-          </div>
-        </section>
-
-        <section id="about" className={styles.aboutSection} aria-labelledby="about-title">
-          <div className={`${styles.container} ${styles.aboutGrid}`}>
-            <div className={styles.aboutCopy}>
-              <p className={styles.eyebrow}>BUILT AROUND YOUR BUSINESS.</p>
-              <h2 id="about-title">
-                Less busywork.
-                <br />
-                More room for what’s next.
+                The details get left behind.
               </h2>
               <p>
-                Invend starts with daily sales operations: enquiries, business-aware replies,
-                pricing guardrails and orders. Our longer-term direction is an{' '}
-                <strong>AI Commerce Growth Platform</strong>—not a claim that every capability is
-                live today.
+                A price in one chat. An order in another. A payment claim you still need to check.
+              </p>
+              <p>The work isn’t just replying. It’s remembering what happens next.</p>
+            </div>
+            <div
+              className={styles.fragments}
+              aria-label="Fictional examples of scattered sales conversations"
+            >
+              <div className={styles.fragment}>
+                <span className={styles.fragmentIcon}>
+                  <MessageCircle size={19} aria-hidden="true" />
+                </span>
+                <div>
+                  <small>THE SAME QUESTION, AGAIN</small>
+                  <p>“Is the indigo one still available?”</p>
+                </div>
+                <CircleHelp size={18} aria-hidden="true" />
+              </div>
+              <div className={styles.fragment}>
+                <span className={styles.fragmentIcon}>
+                  <Mail size={19} aria-hidden="true" />
+                </span>
+                <div>
+                  <small>A FOLLOW-UP TO REMEMBER</small>
+                  <p>“Can you send the order details?”</p>
+                </div>
+                <span className={styles.fragmentDash} aria-hidden="true">
+                  —
+                </span>
+              </div>
+              <div className={styles.fragment}>
+                <span className={styles.fragmentIcon}>
+                  <FileText size={19} aria-hidden="true" />
+                </span>
+                <div>
+                  <small>A CLAIM, NOT A CONFIRMATION</small>
+                  <p>“I’ve paid. Here’s a screenshot.”</p>
+                </div>
+                <LockKeyhole size={18} aria-hidden="true" />
+              </div>
+              <p className={styles.fragmentCaption}>
+                Different places. One business to look after.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="the-solution"
+          className={styles.solutionSection}
+          aria-labelledby="solution-title"
+        >
+          <div className={styles.container}>
+            <div className={styles.centerHead}>
+              <p className={styles.eyebrow}>FROM SCATTERED TO CONNECTED.</p>
+              <h2 id="solution-title">
+                Everything comes together,
+                <br />
+                so you stay in control.
+              </h2>
+              <p>Keep the question, the facts and the next decision in the same story.</p>
+            </div>
+            <div className={styles.connection}>
+              <div className={styles.ownerRail}>
+                <span>
+                  <ShieldCheck size={17} aria-hidden="true" /> Your rules. Your decisions.
+                </span>
+              </div>
+              <ol className={styles.connectionFlow} aria-label="A connected sales workflow">
+                {[
+                  { icon: Inbox, title: 'The conversation', note: 'Customer context stays close.' },
+                  {
+                    icon: SlidersHorizontal,
+                    title: 'The right facts',
+                    note: 'Your prices, stock and rules.',
+                  },
+                  {
+                    icon: Package,
+                    title: 'An organised order',
+                    note: 'Agreed details, ready to review.',
+                  },
+                  {
+                    icon: FileText,
+                    title: 'A clear record',
+                    note: 'Payment status, then a receipt.',
+                  },
+                ].map(({ icon: Icon, title, note }, index) => (
+                  <li key={title}>
+                    <span className={styles.connectionIcon}>
+                      <Icon size={24} strokeWidth={1.5} aria-hidden="true" />
+                    </span>
+                    <span className={styles.connectionNumber}>0{index + 1}</span>
+                    <h3>{title}</h3>
+                    <p>{note}</p>
+                    {index < 3 && (
+                      <ArrowRight className={styles.connectionArrow} size={18} aria-hidden="true" />
+                    )}
+                  </li>
+                ))}
+              </ol>
+              <p className={styles.connectionNote}>
+                Assistance handles the routine. Exceptions come back to you.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="features"
+          tabIndex={-1}
+          className={styles.featuresSection}
+          aria-labelledby="features-title"
+        >
+          <div className={styles.container}>
+            <div className={styles.sectionHead}>
+              <div>
+                <p className={styles.eyebrow}>A LITTLE MORE CONNECTED.</p>
+                <h2 id="features-title">
+                  The tools behind
+                  <br />a smoother sale.
+                </h2>
+              </div>
+              <p>
+                Explore the workflow, not just a feature list.
+                <br />
+                These are interactive, fictional examples—not live accounts.
+              </p>
+            </div>
+            <FeatureTour />
+          </div>
+        </section>
+
+        <section
+          id="how-it-works"
+          tabIndex={-1}
+          className={styles.howSection}
+          aria-labelledby="how-title"
+        >
+          <div className={styles.container}>
+            <div className={styles.sectionHead}>
+              <div>
+                <p className={styles.eyebrow}>A NATURAL WAY TO WORK.</p>
+                <h2 id="how-title">
+                  From the first hello
+                  <br />
+                  to a clearer picture.
+                </h2>
+              </div>
+              <p>
+                Four connected steps.
+                <br />
+                One business, with you at the centre.
+              </p>
+            </div>
+            <WorkflowSteps />
+          </div>
+        </section>
+
+        <section
+          id="owner-control"
+          className={styles.controlSection}
+          aria-labelledby="control-title"
+        >
+          <div className={`${styles.container} ${styles.controlGrid}`}>
+            <div className={styles.sectionCopy}>
+              <p className={styles.eyebrow}>INTELLIGENT ASSISTANCE. HUMAN JUDGEMENT.</p>
+              <h2 id="control-title">
+                Helpful by default.
+                <br />
+                Yours to decide.
+              </h2>
+              <p>
+                Let routine replies start with verified business facts. Keep the sensitive decisions
+                where they belong—with you.
+              </p>
+              <div className={styles.controlRules}>
+                <div>
+                  <Check size={18} aria-hidden="true" />
+                  <p>
+                    <strong>Inside your rules</strong>
+                    <span>Known product details, stock and prices. No invented answers.</span>
+                  </p>
+                </div>
+                <div>
+                  <ShieldCheck size={18} aria-hidden="true" />
+                  <p>
+                    <strong>Back to you</strong>
+                    <span>
+                      Discount exceptions, complaints, refunds, custom or bulk requests, and
+                      uncertain answers.
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <p className={styles.smallNote}>
+                You can take over a conversation. Consent still comes before a follow-up.
+              </p>
+            </div>
+            <OwnerControl />
+          </div>
+        </section>
+
+        <section
+          id="pricing"
+          tabIndex={-1}
+          className={styles.pricingSection}
+          aria-labelledby="pricing-title"
+        >
+          <div className={`${styles.container} ${styles.pricingGrid}`}>
+            <div className={styles.sectionCopy}>
+              <p className={styles.eyebrow}>CLEAR EXPECTATIONS. FROM THE START.</p>
+              <h2 id="pricing-title">
+                A considered product.
+                <br />
+                An honest starting point.
+              </h2>
+              <p>
+                Take a look around. Understand how Invend works before deciding what comes next.
+              </p>
+              <a href="/app" className={styles.textLink}>
+                Explore the sample workspace <ArrowUpRight size={17} aria-hidden="true" />
+              </a>
+            </div>
+            <div className={styles.pricingPanel}>
+              <span className={styles.pricingLabel}>PRICING</span>
+              <h3>
+                Not yet published.
+                <br />
+                No guesswork here.
+              </h3>
+              <p>
+                Subscription plans, prices and usage limits have not been announced. We won’t dress
+                up sample numbers as a commercial offer.
+              </p>
+              <a href="/app?auth=sign-up" className={styles.primaryButton}>
+                Get started <ArrowUpRight size={17} aria-hidden="true" />
+              </a>
+              <p className={styles.paymentNote}>
+                <ShieldCheck size={17} aria-hidden="true" />
+                Your customers pay your business directly. Your Invend subscription is separate.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="about"
+          tabIndex={-1}
+          className={styles.aboutSection}
+          aria-labelledby="about-title"
+        >
+          <div className={`${styles.container} ${styles.aboutGrid}`}>
+            <div className={styles.sectionCopy}>
+              <p className={styles.eyebrow}>BUILT AROUND THE BUSINESS OWNER.</p>
+              <h2 id="about-title">
+                More room for
+                <br />
+                the work that matters.
+              </h2>
+              <p>
+                Invend is being built for businesses that sell through conversations—from an owner
+                managing every reply to a team handling a busy inbox.
+              </p>
+              <p>
+                Our direction is an <strong>AI Commerce Growth Platform</strong>. We’re starting
+                with the everyday: clearer conversations, organised sales operations and accountable
+                assistance.
+              </p>
+              <p className={styles.aboutStatement}>
+                <BrandIcon size={28} />
+                Technology should support your judgement.
+                <br />
+                Not replace it.
               </p>
             </div>
             <div className={styles.faqList} data-testid="homepage-faq">
+              <p className={styles.eyebrow}>A FEW THINGS WORTH KNOWING.</p>
               {questions.map(([question, answer]) => (
                 <details key={question}>
                   <summary>
                     {question}
-                    <ChevronDown size={16} aria-hidden="true" />
+                    <ChevronDown size={18} aria-hidden="true" />
                   </summary>
                   <p>{answer}</p>
                 </details>
@@ -245,23 +356,16 @@ export function Homepage() {
 
         <section className={styles.finalCta} aria-labelledby="start-title">
           <div className={`${styles.container} ${styles.finalInner}`}>
-            <div>
-              <p className={styles.eyebrow}>LESS BUSYWORK. MORE BUSINESS.</p>
-              <h2 id="start-title">
-                Make room for
-                <br />
-                your next chapter.
-              </h2>
-              <p>Give the routine questions a little help. Keep the decisions that matter.</p>
-            </div>
-            <div className={styles.finalActions}>
-              <a href="/app?auth=sign-up" className={styles.primaryButton}>
-                Get started with Invend <ArrowRight size={16} aria-hidden="true" />
-              </a>
-              <a href="/app" className={styles.textLink}>
-                Or explore the sample workspace <ArrowUpRight size={14} aria-hidden="true" />
-              </a>
-            </div>
+            <p className={styles.eyebrow}>LESS BUSYWORK. MORE BUSINESS.</p>
+            <h2 id="start-title">
+              A clearer working day
+              <br />
+              starts with a conversation.
+            </h2>
+            <p>Bring the details together. Keep the decisions yours.</p>
+            <a href="/app?auth=sign-up" className={styles.primaryButton}>
+              Get started with Invend <ArrowUpRight size={18} aria-hidden="true" />
+            </a>
           </div>
         </section>
       </main>
@@ -271,21 +375,38 @@ export function Homepage() {
             <a href="#home" aria-label="Invend home">
               <Brand />
             </a>
-            <p>Your business, in good hands.</p>
+            <p>
+              Your business, in good hands.
+              <br />
+              Yours.
+            </p>
           </div>
-          <nav aria-label="Footer navigation" className={styles.footerLinks}>
-            <a href="#ai-sales-assistant">Product</a>
+          <nav aria-label="Product">
+            <h2>Product</h2>
+            <a href="#features">Features</a>
+            <a href="#how-it-works">How it works</a>
             <a href="#integrations">Integrations</a>
             <a href="#pricing">Pricing</a>
-            <a href="#about">About</a>
+          </nav>
+          <nav aria-label="Company">
+            <h2>Company</h2>
+            <a href="#about">About Invend</a>
+            <a href="#owner-control">Your control</a>
+          </nav>
+          <nav aria-label="Your workspace">
+            <h2>Your workspace</h2>
             <a href="/app?auth=sign-in">Sign in</a>
+            <a href="/app?auth=sign-up">
+              Get started <ArrowUpRight size={14} aria-hidden="true" />
+            </a>
+            <a href="/app">Explore the sample</a>
           </nav>
         </div>
         <div className={`${styles.container} ${styles.footerBottom}`}>
-          <span>© {new Date().getUTCFullYear()} Invend</span>
-          <span>Illustrative demos. No live messages or payments.</span>
+          <p>© 2026 Invend</p>
+          <p>Illustrative examples. No live messages or payments.</p>
           <a href="#home">
-            Back to top <ArrowUp size={13} aria-hidden="true" />
+            Back to top <ArrowUp size={14} aria-hidden="true" />
           </a>
         </div>
       </footer>

@@ -1,0 +1,243 @@
+.hero {
+  position: relative;
+  padding: 156px 24px 72px;
+  background: #fffefc;
+  color: #1c1c1c;
+  text-align: center;
+  isolation: isolate;
+}
+.hero ::selection {
+  background: #16845b25;
+  color: #1c1c1c;
+}
+.copy {
+  position: relative;
+  z-index: 2;
+  width: min(1050px, 100%);
+  margin-inline: auto;
+}
+.hero .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: #626262;
+  font:
+    500 10px/1.7 'Plus Jakarta Sans',
+    sans-serif;
+  letter-spacing: 0.12em;
+  animation: heroUp 550ms 40ms both;
+}
+.eyebrow > span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #16845b;
+}
+.hero .title {
+  margin: 23px 0 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: clamp(42px, 4.75vw, 68px);
+  font-weight: 500;
+  line-height: 1.17;
+  letter-spacing: -0.06em;
+  text-wrap: balance;
+}
+.title > span {
+  display: block;
+  animation: headlineIn 700ms cubic-bezier(0.18, 0.7, 0.28, 1) both;
+}
+.title > span:first-child {
+  animation-delay: 90ms;
+}
+.title > span:last-child {
+  animation-delay: 170ms;
+}
+.hero .description {
+  max-width: 610px;
+  margin: 24px auto 0;
+  color: #626262;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.8;
+  text-wrap: pretty;
+  animation: heroUp 650ms 220ms both;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 29px;
+}
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  min-height: 48px;
+  padding: 12px 23px;
+  border: 1px solid #e0e1dc;
+  border-radius: 11px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.7;
+  transform: scale(1);
+  transition:
+    transform 200ms ease,
+    background 200ms ease,
+    box-shadow 200ms ease,
+    border-color 200ms ease;
+  animation: heroUp 550ms 280ms both;
+}
+.primary {
+  background: #16845b;
+  border-color: #116b49;
+  color: white;
+  box-shadow:
+    0 2px 4px #116b491a,
+    inset 0 1px 0 #ffffff1f;
+}
+.primary:hover {
+  background: #116b49;
+  transform: scale(1.035);
+  box-shadow: 0 8px 18px -8px #116b4945;
+}
+.primary:active {
+  transform: scale(0.98);
+}
+.secondary {
+  background: #fffefc;
+  color: #1c1c1c;
+  animation-delay: 330ms;
+}
+.secondary:hover {
+  background: #edf5f0;
+  border-color: #c0d7c8;
+  color: #116b49;
+  transform: translateY(-2px);
+}
+.secondary:active {
+  transform: scale(0.98);
+}
+.hero :is(a, button):focus-visible {
+  outline: 2px solid #116b49;
+  outline-offset: 4px;
+}
+.hero .note {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+  margin-top: 19px;
+  color: #626262;
+  font-size: 10px;
+  line-height: 1.7;
+  animation: heroUp 500ms 370ms both;
+}
+@keyframes heroUp {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes headlineIn {
+  from {
+    opacity: 0;
+    translate: 0 13px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@media (min-width: 1600px) {
+  .hero {
+    padding-top: 163px;
+  }
+}
+@media (max-width: 1099px) {
+  .hero {
+    padding-top: 138px;
+    padding-bottom: 60px;
+  }
+  .hero .title {
+    font-size: clamp(42px, 5.7vw, 59px);
+  }
+}
+@media (max-width: 639px) {
+  .hero {
+    padding: 124px 20px 44px;
+  }
+  .hero .title {
+    margin-top: 20px;
+    font-size: clamp(34px, 8vw, 43px);
+    line-height: 1.19;
+    letter-spacing: -0.055em;
+  }
+  .hero .eyebrow {
+    font-size: 8px;
+    letter-spacing: 0.1em;
+    gap: 7px;
+  }
+  .hero .description {
+    margin-top: 20px;
+    font-size: 14px;
+    line-height: 1.8;
+    max-width: 360px;
+  }
+  .actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 48px;
+    gap: 10px;
+    width: min(330px, 100%);
+    margin: 24px auto 0;
+  }
+  .primary {
+    grid-column: 1/-1;
+  }
+  .secondary {
+    gap: 14px;
+  }
+  .actions:not(:has([data-pwa-control])) .secondary {
+    grid-column: 1/-1;
+  }
+  .primary,
+  .secondary {
+    padding-inline: 16px;
+    font-size: 12px;
+    min-height: 48px;
+  }
+  .hero .note {
+    font-size: 9px;
+    gap: 6px;
+    margin-top: 15px;
+  }
+  .title > span,
+  .hero .description,
+  .hero .eyebrow,
+  .primary,
+  .secondary,
+  .hero .note {
+    animation-duration: 400ms;
+    animation-delay: 0ms;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero *,
+  .hero *::before,
+  .hero *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .hero .primary:is(:hover, :active),
+  .hero .secondary:is(:hover, :active) {
+    transform: none;
+  }
+}

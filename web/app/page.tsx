@@ -2,13 +2,13 @@ import type { Metadata, Viewport } from 'next';
 import { Homepage } from '../components/marketing/homepage';
 
 export const metadata: Metadata = {
-  title: 'Invend — Your AI sales assistant. Your business, in control.',
+  title: 'Invend — Every conversation. Every order. One workspace.',
   description:
-    'Meet Invend, the AI sales assistant for online vendors with busy inboxes. Explore photo-first catalogues, customer conversations, human approvals and order tracking.',
+    'Bring customer conversations, products and orders together with Invend. Explore fact-aware AI assistance, clear sales workflows and owner control, with honest rollout and pricing information.',
 };
 
 // Marketing chrome follows this page; the authenticated workspace retains its own theme.
-export const viewport: Viewport = { themeColor: '#FFFEFA' };
+export const viewport: Viewport = { themeColor: '#FFFEFC' };
 
 export default function Page() {
   return <Homepage />;
