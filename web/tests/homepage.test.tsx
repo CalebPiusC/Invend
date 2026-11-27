@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Homepage } from '../components/marketing/homepage';
@@ -6,13 +6,29 @@ import { checkSampleOffer, sampleMoney, sampleSale } from '../components/marketi
 import AppPage from '../app/app/page';
 import { DataProvider } from '../components/data/provider';
 
+// jsdom has no layout/scroll implementation. Real anchor clearance is checked in tests/homepage.mjs.
+const scrollIntoView = vi.fn();
+Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+  configurable: true,
+  value: scrollIntoView,
+});
+beforeEach(() => {
+  window.history.replaceState(null, '', '/');
+  scrollIntoView.mockClear();
+});
 afterEach(() => {
+  window.history.replaceState(null, '', '/');
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
 
 function sample(testId: string) {
   return within(screen.getByTestId(testId));
+}
+async function openWorkflow(user: ReturnType<typeof userEvent.setup>, id: string) {
+  const details = document.getElementById(id) as HTMLDetailsElement;
+  await user.click(details.querySelector('summary')!);
+  expect(details.open).toBe(true);
 }
 
 describe('public homepage', () => {
@@ -21,9 +37,12 @@ describe('public homepage', () => {
     vi.stubGlobal('fetch', fetcher);
     render(<Homepage />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      'Every enquiry matters.Not every reply needs you.',
+      'More sales.Still your call.',
     );
-    expect(screen.getByAltText(/fictional Nigerian vendor/)).toBeInTheDocument();
+    expect(screen.getByTestId('hero-sales-demo')).toHaveTextContent(
+      'Gmail · fictional conversation',
+    );
+    expect(screen.getByTestId('workspace-preview')).toHaveTextContent('Illustrative workspace');
     expect(screen.queryByTestId('sample-label')).not.toBeInTheDocument();
     expect(
       screen
@@ -31,6 +50,102 @@ describe('public homepage', () => {
         .every((link) => link.getAttribute('href') === '/app?auth=sign-up'),
     ).toBe(true);
     expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('keeps enquiry, recommendation, draft and owner approval distinct without making a real sale', async () => {
+    const user = userEvent.setup();
+    const fetcher = vi.fn();
+    vi.stubGlobal('fetch', fetcher);
+    render(<Homepage />);
+    const hero = sample('hero-sales-demo');
+    expect(hero.getByText(/Hi! Do you have two indigo totes/)).toBeInTheDocument();
+    expect(hero.getByText(/Two are ₦24,000, plus ₦1,500 delivery/)).toBeInTheDocument();
+    expect(hero.queryByText(sampleSale.orderId)).not.toBeInTheDocument();
+    await user.click(hero.getByRole('button', { name: 'Build a sample draft' }));
+    expect(hero.getByText(sampleSale.orderId)).toBeInTheDocument();
+    expect(hero.getByText('Not yet approved')).toBeInTheDocument();
+    expect(hero.getByText('₦23,500', { exact: true })).toBeInTheDocument();
+    expect(
+      hero.getByText('Customer acceptance and payment are still pending.'),
+    ).toBeInTheDocument();
+    expect(
+      hero.queryByRole('button', { name: 'Approve demo counter-offer' }),
+    ).not.toBeInTheDocument();
+    await user.click(hero.getByRole('button', { name: 'Review owner approval' }));
+    expect(hero.getByText('Not yet approved')).toBeInTheDocument();
+    await user.click(hero.getByRole('button', { name: 'Approve demo counter-offer' }));
+    expect(hero.getByText('Reviewed by Tola · owner')).toBeInTheDocument();
+    expect(hero.getByRole('status')).toHaveTextContent('No message was sent or order saved.');
+    expect(
+      hero.getByText('Customer acceptance and payment are still pending.'),
+    ).toBeInTheDocument();
+    await user.click(hero.getByRole('button', { name: 'Restart example' }));
+    expect(hero.getByRole('button', { name: 'Build a sample draft' })).toBeInTheDocument();
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it('keeps all six workflows compact, labelled and available without discarding local demo state', async () => {
+    const user = userEvent.setup();
+    render(<Homepage />);
+    const explorer = screen.getByTestId('workflow-explorer');
+    const workflows = explorer.querySelectorAll<HTMLDetailsElement>('details');
+    expect(workflows).toHaveLength(6);
+    expect([...workflows].every((workflow) => !workflow.open)).toBe(true);
+    expect(
+      [...workflows].every((workflow) => workflow.getAttribute('name') === 'invend-workflows'),
+    ).toBe(true);
+    expect(explorer).toHaveTextContent('Nothing is sent or saved.');
+    await openWorkflow(user, 'negotiation');
+    await user.click(sample('negotiation-demo').getByRole('button', { name: '₦22,000' }));
+    await user.click(document.querySelector('#negotiation > summary')!);
+    expect(document.getElementById('negotiation')).not.toHaveAttribute('open');
+    await openWorkflow(user, 'negotiation');
+    expect(sample('negotiation-demo').getByText('Within the price boundary')).toBeInTheDocument();
+  });
+
+  it('opens a directly linked workflow and reopens it on a repeated dashboard link', async () => {
+    window.history.replaceState(null, '', '/#smart-catalogue');
+    const user = userEvent.setup();
+    render(<Homepage />);
+    const details = document.getElementById('smart-catalogue') as HTMLDetailsElement;
+    expect(details.open).toBe(true);
+    await user.click(details.querySelector('summary')!);
+    expect(details.open).toBe(false);
+    const link = screen
+      .getByTestId('workspace-preview')
+      .querySelector('a[href="#smart-catalogue"]')!;
+    await user.click(link);
+    expect(details.open).toBe(true);
+    await user.click(details.querySelector('summary')!);
+    await user.click(link);
+    expect(details.open).toBe(true);
+  });
+
+  it('shows roadmap priority rather than suggesting the illustrated integrations are connected', () => {
+    render(<Homepage />);
+    const map = sample('integration-map');
+    expect(map.getByText('01 / First priority')).toBeInTheDocument();
+    expect(map.getByText('02 / Next priority')).toBeInTheDocument();
+    expect(map.getAllByText('Live validation pending')).toHaveLength(2);
+    expect(map.getAllByText('Planned · not available')).toHaveLength(2);
+    expect(map.getByText(/lines do not represent live connections/)).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-preview')).toHaveTextContent('No live connections.');
+  });
+
+  it('labels every pricing concept as a preview, not a subscription purchase', () => {
+    render(<Homepage />);
+    const pricing = within(document.getElementById('pricing')!);
+    for (const name of ['Starter', 'Growth', 'Scale']) {
+      const plan = pricing.getByRole('article', { name: `${name} plan preview` });
+      expect(plan).toHaveTextContent('Pricing to be confirmed');
+      expect(within(plan).getByRole('link')).toHaveAttribute('href', '/app');
+    }
+    expect(
+      pricing.getByText(/Illustrative plan previews, not established plans/),
+    ).toBeInTheDocument();
+    expect(document.getElementById('pricing')).not.toHaveTextContent(
+      /\$\d|most popular|free trial/i,
+    );
   });
 
   it('opens grouped feature navigation with a keyboard and restores focus with Escape', async () => {
@@ -77,6 +192,7 @@ describe('public homepage', () => {
     const fetcher = vi.fn();
     vi.stubGlobal('fetch', fetcher);
     render(<Homepage />);
+    await openWorkflow(user, 'negotiation');
     const demo = sample('negotiation-demo');
     expect(demo.getByText('Owner review required')).toBeInTheDocument();
     expect(demo.getByText('₦2,000 below your minimum.')).toBeInTheDocument();
@@ -99,6 +215,7 @@ describe('public homepage', () => {
     const fetcher = vi.fn();
     vi.stubGlobal('fetch', fetcher);
     render(<Homepage />);
+    await openWorkflow(user, 'smart-catalogue');
     const demo = sample('catalogue-demo');
     await user.click(demo.getByRole('button', { name: 'Review sample details' }));
     expect(demo.getByRole('button', { name: 'Confirm sample product' })).toBeDisabled();
@@ -116,18 +233,22 @@ describe('public homepage', () => {
   it('selects customer context without claiming a planned channel is connected', async () => {
     const user = userEvent.setup();
     render(<Homepage />);
+    await openWorkflow(user, 'unified-inbox');
     const demo = sample('inbox-demo');
     await user.click(demo.getByRole('button', { name: /Chidi Okafor/ }));
     expect(demo.getByText('Instagram · fictional conversation')).toBeInTheDocument();
     expect(demo.getByText('Asked about delivery · Yaba')).toBeInTheDocument();
     expect(demo.getByText(/including a planned integration/)).toBeInTheDocument();
     await user.click(demo.getByRole('button', { name: /Lola Adeyemi/ }));
+    expect(demo.getByText('WhatsApp · fictional conversation')).toBeInTheDocument();
+    await user.click(demo.getByRole('button', { name: /Amaka Bello/ }));
     expect(demo.getByText('Gmail / Email · fictional conversation')).toBeInTheDocument();
   });
 
   it('requires sample consent before queuing a follow-up and clearly labels manual lead stages', async () => {
     const user = userEvent.setup();
     render(<Homepage />);
+    await openWorkflow(user, 'lead-management');
     const demo = sample('lead-demo');
     expect(demo.getByRole('button', { name: 'Queue sample follow-up' })).toBeDisabled();
     await user.click(demo.getByRole('button', { name: /Ready to buy/ }));
@@ -148,6 +269,7 @@ describe('public homepage', () => {
     const fetcher = vi.fn();
     vi.stubGlobal('fetch', fetcher);
     render(<Homepage />);
+    await openWorkflow(user, 'orders-and-payments');
     const demo = sample('order-demo');
     expect(demo.getByText('₦23,500', { exact: true })).toBeInTheDocument();
     await user.click(demo.getByRole('button', { name: 'Create sample draft' }));
@@ -172,6 +294,7 @@ describe('public homepage', () => {
     const fetcher = vi.fn();
     vi.stubGlobal('fetch', fetcher);
     render(<Homepage />);
+    await openWorkflow(user, 'team-management');
     const demo = sample('control-demo');
     await user.click(demo.getByRole('button', { name: 'Take over demo conversation' }));
     expect(demo.getByText('AI replies are paused in this demonstration.')).toBeInTheDocument();
@@ -185,10 +308,14 @@ describe('public homepage', () => {
     expect(fetcher).not.toHaveBeenCalled();
   });
 
-  it('discloses all six integration states and does not invent software prices', () => {
+  it('discloses all six integration states and does not invent software prices', async () => {
+    const user = userEvent.setup();
     render(<Homepage />);
+    await openWorkflow(user, 'integration-readiness');
     const demo = sample('integration-status');
     expect(demo.getAllByRole('listitem')).toHaveLength(6);
+    expect(demo.getAllByRole('listitem')[0]).toHaveTextContent('Gmail / Email');
+    expect(demo.getAllByRole('listitem')[1]).toHaveTextContent('WhatsApp');
     expect(demo.getAllByText('Built · live validation pending')).toHaveLength(2);
     expect(demo.getAllByText('Planned', { exact: true })).toHaveLength(2);
     expect(demo.getByText('SMS', { exact: true }).closest('li')).toHaveTextContent(

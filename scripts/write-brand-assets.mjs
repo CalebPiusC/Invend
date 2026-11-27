@@ -3,24 +3,28 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import sharp from 'sharp';
 import fontkit from '@pdf-lib/fontkit';
-import { INVEND_BAG_PATH, INVEND_GOLD, INVEND_HANDLE_PATH } from '../web/lib/brand-mark.ts';
+import {
+  INVEND_BAG_PATH,
+  INVEND_CHARCOAL,
+  INVEND_GOLD,
+  INVEND_HANDLE_PATH,
+} from '../web/lib/brand-mark.ts';
 
-const violet = '#4338CA';
-const indigo = '#242066';
+const charcoal = INVEND_CHARCOAL;
 const symbol = (color) =>
   `<path d="${INVEND_HANDLE_PATH}" fill="none" stroke="${color}" stroke-width="4" stroke-linecap="round"/><path d="${INVEND_BAG_PATH}" fill="${color}" fill-rule="evenodd" clip-rule="evenodd"/><circle cx="48" cy="23" r="2.8" fill="${INVEND_GOLD}"/>`;
 const svg = (width, height, body, label = 'Invend') =>
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${label}"><title>${label}</title>${body}</svg>\n`;
-const icon = svg(64, 64, symbol(violet));
+const icon = svg(64, 64, symbol(charcoal));
 const tile = svg(
   64,
   64,
-  `<rect width="64" height="64" rx="14" fill="${violet}"/><g transform="translate(6.4 6.4) scale(.8)">${symbol('#FFFFFF')}</g>`,
+  `<rect width="64" height="64" rx="14" fill="${charcoal}"/><g transform="translate(6.4 6.4) scale(.8)">${symbol('#FFFFFF')}</g>`,
 );
 const app = svg(
   64,
   64,
-  `<rect width="64" height="64" fill="${violet}"/><g transform="translate(6.4 6.4) scale(.8)">${symbol('#FFFFFF')}</g>`,
+  `<rect width="64" height="64" fill="${charcoal}"/><g transform="translate(6.4 6.4) scale(.8)">${symbol('#FFFFFF')}</g>`,
 );
 
 // Outline the existing Plus Jakarta Sans wordmark so the SVG needs no installed font.
@@ -46,7 +50,7 @@ const wordmark = (color) =>
 const horizontal = svg(
   width,
   64,
-  `<g transform="translate(0 7) scale(.8)">${symbol(violet)}</g>${wordmark(indigo)}`,
+  `<g transform="translate(0 7) scale(.8)">${symbol(charcoal)}</g>${wordmark(charcoal)}`,
   'invend',
 );
 const inverse = svg(

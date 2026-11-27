@@ -72,6 +72,9 @@ for (const width of [390, 1440]) {
       await (
         await caches.open('selvora-static-v1')
       ).put('/offline.html', new Response('<title>Selvora — Offline</title>Old offline copy'));
+      await (
+        await caches.open('selvora-static-v2')
+      ).put('/invend-icon-192.png', new Response('previous bag icon'));
       await (await caches.open('unrelated-test-cache')).put('/unrelated', new Response('keep'));
     });
 
@@ -134,13 +137,15 @@ for (const width of [390, 1440]) {
     await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
     const cachesState = await page.evaluate(async () => {
       const names = await caches.keys();
-      const cache = await caches.open('selvora-static-v2');
+      const cache = await caches.open('selvora-static-v3');
       return {
         names,
         urls: (await cache.keys()).map((request) => new URL(request.url).pathname).sort(),
       };
     });
     assert.ok(!cachesState.names.includes('selvora-static-v1'));
+    assert.ok(!cachesState.names.includes('selvora-static-v2'));
+    assert.ok(cachesState.names.includes('selvora-static-v3'));
     assert.ok(cachesState.names.includes('unrelated-test-cache'));
     assert.deepEqual(cachesState.urls, ['/invend-icon-192.png', '/offline.html']);
     for (const asset of [

@@ -74,6 +74,39 @@ export function HomeHeader() {
     }
   }, [featuresOpen]);
 
+  useEffect(() => {
+    let frame = 0;
+    // Existing feature URLs still reveal their demo, including direct links and repeat clicks.
+    const reveal = (hash: string) => {
+      const target = document.getElementById(hash.slice(1));
+      if (!(target instanceof HTMLDetailsElement)) return;
+      target.open = true;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        target.querySelector('summary')?.focus({ preventScroll: true });
+        target.scrollIntoView({ block: 'start', behavior: 'auto' });
+      });
+    };
+    const onHash = () => reveal(window.location.hash);
+    const onLink = (event: MouseEvent) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey)
+        return;
+      const anchor =
+        event.target instanceof Element
+          ? event.target.closest<HTMLAnchorElement>('a[href^="#"]')
+          : null;
+      if (anchor) reveal(anchor.hash);
+    };
+    onHash();
+    window.addEventListener('hashchange', onHash);
+    document.addEventListener('click', onLink);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('hashchange', onHash);
+      document.removeEventListener('click', onLink);
+    };
+  }, []);
+
   return (
     <header
       className={styles.header}

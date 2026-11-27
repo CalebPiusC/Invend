@@ -313,7 +313,7 @@ const conversations = [
   {
     name: 'Amaka Bello',
     initial: 'A',
-    channel: 'WhatsApp',
+    channel: 'Gmail / Email',
     preview: 'Can I get two for ₦20,000?',
     question: 'Can I get two for ₦20,000? They’re gifts for my sisters.',
     reply: 'This needs owner review. The two totes have a ₦22,000 minimum before delivery.',
@@ -333,7 +333,7 @@ const conversations = [
   {
     name: 'Lola Adeyemi',
     initial: 'L',
-    channel: 'Gmail / Email',
+    channel: 'WhatsApp',
     preview: 'Is the cream and indigo one in stock?',
     question: 'Is the cream and indigo tote in stock? I’d like one.',
     reply:

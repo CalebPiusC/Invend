@@ -180,7 +180,10 @@ not been implemented by S0. No live-provider/release approval is recorded.
 ## Brand assets
 
 The product is **Invend**, with a lowercase **invend** wordmark. The shopping-bag/filter
-symbol uses the existing indigo/violet palette and a restrained gold accent.
+symbol has an open handle, a flat base and a restrained gold accent. Exported brand assets use
+charcoal `#1C1C1C` and gold `#F5B700`; the homepage pairs these with cream `#FFF8E6`, warm white
+`#FFFEFA` and white `#FFFFFF`. This marketing palette is scoped to the homepage, not the
+existing authenticated workspace theme.
 
 - Horizontal logo: `web/public/invend-logo.svg`; white version: `invend-logo-inverse.svg`.
 - Standalone symbol: `web/public/invend-icon.svg`; compact tile: `invend-compact.svg`.

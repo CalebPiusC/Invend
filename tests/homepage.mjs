@@ -68,6 +68,23 @@ try {
     );
   }
 
+  async function openWorkflow(id) {
+    const details = page.locator(`[id="${id}"]`);
+    if (!(await details.evaluate((element) => element.open)))
+      await details.locator(':scope > summary').click();
+    assert.equal(await details.evaluate((element) => element.open), true);
+    if ((await details.getAttribute('name')) === 'invend-workflows')
+      assert.equal(await page.locator('details[name="invend-workflows"][open]').count(), 1);
+  }
+  async function demoScreenshot(testId, name) {
+    if (artifacts)
+      await page.getByTestId(testId).screenshot({
+        path: join(artifacts, `${name}.png`),
+        // Element captures otherwise include the sticky page header over their first rows.
+        style: 'header { visibility: hidden; }',
+      });
+  }
+
   for (const width of [320, 390, 768, 900, 1100, 1280, 1440]) {
     await page.setViewportSize({ width, height: width < 600 ? 844 : 1000 });
     const response = await page.goto(origin, { waitUntil: 'networkidle', timeout: 120000 });
@@ -87,11 +104,53 @@ try {
     );
     assert.equal(
       await page.locator('#home').evaluate((element) => getComputedStyle(element).backgroundColor),
-      'rgb(36, 32, 102)',
+      'rgb(255, 254, 250)',
     );
-    await page.getByAltText(/fictional Nigerian vendor/).evaluate((image) => image.decode());
+    await page.getByAltText(/AI-generated adire tote used/).evaluate((image) => image.decode());
     await fit(`${width} homepage`);
     await accessible(`${width} homepage`);
+    const colours = {
+      '#ai-sales-assistant': 'rgb(255, 255, 255)',
+      '#integrations': 'rgb(255, 248, 230)',
+      '#pricing': 'rgb(255, 254, 250)',
+      '[aria-label="Growth plan preview"]': 'rgb(28, 28, 28)',
+      '[aria-labelledby="start-title"]': 'rgb(28, 28, 28)',
+      footer: 'rgb(255, 254, 250)',
+    };
+    for (const [selector, colour] of Object.entries(colours))
+      assert.equal(
+        await page
+          .locator(selector)
+          .evaluate((element) => getComputedStyle(element).backgroundColor),
+        colour,
+      );
+    assert.equal(await page.locator('meta[name="theme-color"]').getAttribute('content'), '#FFFEFA');
+    assert.equal(await page.locator('details[name="invend-workflows"]').count(), 6);
+    assert.equal(await page.locator('details[name="invend-workflows"][open]').count(), 0);
+
+    const hero = page.getByTestId('hero-sales-demo');
+    await hero.getByRole('button', { name: 'Build a sample draft' }).click();
+    assert.equal(await hero.getByText('₦23,500', { exact: true }).count(), 1);
+    assert.equal(await hero.getByText('Not yet approved', { exact: true }).count(), 1);
+    assert.equal(await hero.getByRole('button', { name: 'Approve demo counter-offer' }).count(), 0);
+    await fit(`${width} hero draft`);
+    await accessible(`${width} hero draft`);
+    await hero.getByRole('button', { name: 'Review owner approval' }).click();
+    assert.equal(await hero.getByText('Not yet approved', { exact: true }).count(), 1);
+    await hero.getByRole('button', { name: 'Approve demo counter-offer' }).click();
+    assert.match(
+      await hero.getByRole('status').textContent(),
+      /No message was sent or order saved/,
+    );
+    assert.equal(
+      await hero.getByText('Customer acceptance and payment are still pending.').count(),
+      1,
+    );
+    await accessible(`${width} hero approval`);
+    if (width === 390 || width === 1440)
+      await demoScreenshot('hero-sales-demo', `hero-approved-${width}`);
+    await hero.getByRole('button', { name: 'Restart example' }).click();
+    await top();
 
     const menu = page.locator('button[aria-controls="site-navigation"]');
     if (width < 1100) {
@@ -136,6 +195,15 @@ try {
       `${width} anchor clearance: ${targetTop}`,
     );
 
+    assert.equal(await page.locator('#smart-catalogue').evaluate((element) => element.open), true);
+    await page.locator('#smart-catalogue > summary').click();
+    await page.getByTestId('workspace-preview').locator('a[href="#smart-catalogue"]').click();
+    assert.equal(
+      await page.locator('#smart-catalogue').evaluate((element) => element.open),
+      true,
+      'repeated anchor reopens the demo',
+    );
+    await openWorkflow('negotiation');
     const negotiation = page.getByTestId('negotiation-demo');
     assert.equal(await negotiation.getByText('Owner review required', { exact: true }).count(), 1);
     await negotiation.getByRole('button', { name: 'Approve sample counter-offer' }).click();
@@ -145,12 +213,15 @@ try {
     );
     await fit(`${width} approval`);
     await accessible(`${width} approval`);
+    if (width === 390 || width === 1440)
+      await demoScreenshot('negotiation-demo', `negotiation-${width}`);
     await negotiation.getByRole('button', { name: '₦22,000', exact: true }).click();
     assert.equal(await negotiation.getByText('Within the price boundary').count(), 1);
     await negotiation.getByRole('button', { name: 'Try the rule-checked reply' }).click();
     assert.match(await negotiation.getByRole('status').textContent(), /No message was sent/);
     await negotiation.getByRole('button', { name: 'Reset demo' }).click();
 
+    await openWorkflow('smart-catalogue');
     const catalogue = page.getByTestId('catalogue-demo');
     await catalogue.getByRole('button', { name: 'Review sample details' }).click();
     assert.equal(
@@ -170,8 +241,11 @@ try {
     );
     await fit(`${width} catalogue confirmation`);
     await accessible(`${width} catalogue confirmation`);
+    if (width === 390 || width === 1440)
+      await demoScreenshot('catalogue-demo', `catalogue-${width}`);
     await catalogue.getByRole('button', { name: 'Reset demo' }).click();
 
+    await openWorkflow('unified-inbox');
     const inbox = page.getByTestId('inbox-demo');
     for (const name of ['Chidi Okafor', 'Lola Adeyemi', 'Amaka Bello']) {
       await inbox.getByRole('button', { name: new RegExp(name) }).click();
@@ -183,7 +257,9 @@ try {
     assert.match(await inbox.textContent(), /including a planned integration/);
     await fit(`${width} inbox`);
     await accessible(`${width} inbox`);
+    if (width === 390 || width === 1440) await demoScreenshot('inbox-demo', `inbox-${width}`);
 
+    await openWorkflow('lead-management');
     const lead = page.getByTestId('lead-demo');
     await lead.getByRole('button', { name: /Ready to buy/ }).click();
     assert.equal(
@@ -195,8 +271,10 @@ try {
     assert.match(await lead.getByRole('status').textContent(), /No message will be sent/);
     await fit(`${width} follow-up`);
     await accessible(`${width} follow-up`);
+    if (width === 390 || width === 1440) await demoScreenshot('lead-demo', `lead-${width}`);
     await lead.getByRole('button', { name: 'Reset demo' }).click();
 
+    await openWorkflow('orders-and-payments');
     const order = page.getByTestId('order-demo');
     await order.getByRole('button', { name: 'Create sample draft' }).click();
     await order.getByRole('button', { name: 'Review payment step' }).click();
@@ -218,8 +296,10 @@ try {
     );
     await fit(`${width} receipt`);
     await accessible(`${width} receipt`);
+    if (width === 390 || width === 1440) await demoScreenshot('order-demo', `receipt-${width}`);
     await order.getByRole('button', { name: 'Reset demo' }).click();
 
+    await openWorkflow('team-management');
     const control = page.getByTestId('control-demo');
     await control.getByRole('button', { name: 'Take over demo conversation' }).click();
     assert.equal(
@@ -232,10 +312,16 @@ try {
     await control.getByRole('button', { name: 'Approve sample reply' }).click();
     assert.match(await control.getByRole('status').textContent(), /No message was sent/);
     await fit(`${width} staff assignment`);
+    await accessible(`${width} staff assignment`);
+    if (width === 390 || width === 1440) await demoScreenshot('control-demo', `control-${width}`);
     await control.getByRole('button', { name: 'Reset demo' }).click();
 
+    await page.locator('#team-management > summary').click();
+    await openWorkflow('integration-readiness');
     const integrations = page.getByTestId('integration-status');
     assert.equal(await integrations.getByRole('listitem').count(), 6);
+    assert.match(await integrations.getByRole('listitem').nth(0).textContent(), /Gmail \/ Email/);
+    assert.match(await integrations.getByRole('listitem').nth(1).textContent(), /WhatsApp/);
     assert.match(
       await integrations
         .getByRole('listitem')
@@ -245,13 +331,25 @@ try {
     );
     assert.match(await page.locator('#pricing').textContent(), /not published in this preview/);
 
-    for (const details of await page.locator('details').all()) {
+    for (const plan of ['Starter', 'Growth', 'Scale']) {
+      const preview = page.getByRole('article', { name: `${plan} plan preview` });
+      assert.match(await preview.textContent(), /Pricing to be confirmed/);
+      assert.equal(await preview.getByRole('link').getAttribute('href'), '/app');
+    }
+    assert.doesNotMatch(
+      await page.locator('#pricing').textContent(),
+      /\$\d|most popular|free trial/i,
+    );
+    await accessible(`${width} integration readiness`);
+    await fit(`${width} integration readiness`);
+    await page.locator('#integration-readiness > summary').click();
+    for (const details of await page.getByTestId('homepage-faq').locator('details').all()) {
       await details.locator('summary').click();
       assert.equal(await details.evaluate((element) => element.open), true);
     }
     await accessible(`${width} expanded FAQs`);
     await fit(`${width} FAQs`);
-    for (const details of await page.locator('details').all())
+    for (const details of await page.getByTestId('homepage-faq').locator('details').all())
       await details.locator('summary').click();
     await page.getByRole('link', { name: 'Back to top', exact: true }).click();
     assert.ok(
@@ -263,9 +361,27 @@ try {
     if (width === 390 || width === 1440) {
       await screenshot(`homepage-${width}`);
       await screenshot(`homepage-${width}-full`, true);
+      await page.goto(new URL('/#orders-and-payments', origin).href, { waitUntil: 'networkidle' });
+      await page.waitForFunction(() => {
+        const target = document.getElementById('orders-and-payments');
+        const y = target.getBoundingClientRect().top;
+        return (
+          target.open &&
+          y >= document.querySelector('header').getBoundingClientRect().bottom &&
+          y < 150
+        );
+      });
+      assert.equal(
+        await page
+          .getByTestId('order-demo')
+          .getByRole('button', { name: 'Create sample draft' })
+          .isVisible(),
+        true,
+        'direct workflow URL remains functional',
+      );
     }
     results.push(
-      `${width}px: navigation/keyboard, pricing boundaries, photo review, inbox, consent-led follow-up, payment gate/receipt, takeover and assignment, FAQs; no overflow`,
+      `${width}px: scoped palette, hero approval, navigation/keyboard and compact workflows, pricing boundaries, photo review, inbox, consent-led follow-up, payment gate/receipt, takeover and assignment, integration roadmap and FAQs; no overflow`,
     );
   }
 
@@ -289,6 +405,11 @@ try {
 
   await page.goto(new URL('/app?auth=sign-in', origin).href, { waitUntil: 'networkidle' });
   await page.getByRole('heading', { name: 'Welcome back.' }).waitFor();
+  assert.equal(
+    await page.locator('meta[name="theme-color"]').getAttribute('content'),
+    '#242066',
+    'application theme stays unchanged',
+  );
   assert.equal(await page.getByTestId('sample-label').count(), 0);
   await page.goto(new URL('/app?auth=sign-up', origin).href, { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: 'Create your account' }).waitFor();

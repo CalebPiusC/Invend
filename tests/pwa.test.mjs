@@ -2,7 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
-import { INVEND_BAG_PATH, INVEND_GOLD, INVEND_HANDLE_PATH } from '../web/lib/brand-mark.ts';
+import sharp from 'sharp';
+import {
+  INVEND_BAG_PATH,
+  INVEND_CHARCOAL,
+  INVEND_GOLD,
+  INVEND_HANDLE_PATH,
+} from '../web/lib/brand-mark.ts';
 
 const publicFile = (name) => readFile(`web/public/${name}`);
 
@@ -72,12 +78,47 @@ test('touch icon and favicon contain correctly sized real PNG images', async () 
   });
 });
 
+test('the refined install mark uses charcoal/gold and stays inside the maskable safe circle', async () => {
+  const charcoal = [28, 28, 28];
+  const gold = [245, 183, 0];
+  assert.equal(INVEND_CHARCOAL, '#1C1C1C');
+  assert.equal(INVEND_GOLD, '#F5B700');
+  for (const size of [192, 512]) {
+    const { data, info } = await sharp(await publicFile(`invend-icon-${size}.png`))
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    assert.equal(info.channels, 4);
+    assert.deepEqual([...data.subarray(0, 3)], charcoal);
+    let goldPixels = 0;
+    let whitePixels = 0;
+    let radius = 0;
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const index = (y * size + x) * 4;
+        const rgb = [...data.subarray(index, index + 3)];
+        if (rgb.every((value, channel) => value === gold[channel])) goldPixels++;
+        if (rgb.every((value) => value === 255)) whitePixels++;
+        // Ignore barely visible antialiasing at the edge of the silhouette.
+        if (rgb.some((value, channel) => Math.abs(value - charcoal[channel]) > 12))
+          radius = Math.max(radius, Math.hypot(x + 0.5 - size / 2, y + 0.5 - size / 2));
+      }
+    }
+    assert.ok(
+      goldPixels > 0 && whitePixels > 0,
+      'the mark and its accent must both survive rasterisation',
+    );
+    assert.ok(radius < size * 0.4, `${size}px icon fits the central 80%-diameter safe circle`);
+  }
+});
+
 async function worker() {
   const handlers = {};
   const cached = [];
   const calls = [];
   const stores = new Map([
     ['selvora-static-v1', new Map([['/offline.html', 'old branding']])],
+    ['selvora-static-v2', new Map([['/invend-icon-192.png', 'previous bag icon']])],
     ['another-app-cache', new Map([['/offline.html', 'unrelated content']])],
   ]);
   let claimed = false;
@@ -120,7 +161,8 @@ test('branding upgrade evicts the old offline cache without deleting another app
   assert.deepEqual(sw.cached, ['/offline.html', '/invend-icon-192.png']);
   await sw.dispatch('activate');
   assert.equal(sw.stores.has('selvora-static-v1'), false);
-  assert.equal(sw.stores.has('selvora-static-v2'), true);
+  assert.equal(sw.stores.has('selvora-static-v2'), false);
+  assert.equal(sw.stores.has('selvora-static-v3'), true);
   assert.equal(sw.stores.has('another-app-cache'), true);
   assert.equal(sw.claimed(), true);
 });
