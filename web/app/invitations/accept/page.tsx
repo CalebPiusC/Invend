@@ -42,7 +42,7 @@ export default function AcceptInvitation() {
   }
   return (
     <main className="mx-auto max-w-lg space-y-6 p-6">
-      <h1 className="text-2xl font-semibold">Join your Selvora team</h1>
+      <h1 className="text-2xl font-semibold">Join your Invend team</h1>
       <p role="status">{status}</p>
       <button
         className="rounded-xl bg-indigo-700 p-4 text-white"
@@ -52,7 +52,7 @@ export default function AcceptInvitation() {
         Accept invitation
       </button>
       <p>
-        <a href="/" target="_blank" rel="noreferrer">
+        <a href="/app?auth=sign-in" target="_blank" rel="noreferrer">
           Open sign in in a new tab
         </a>
       </p>

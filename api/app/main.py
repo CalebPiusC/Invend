@@ -21,7 +21,7 @@ async def lifespan(application):
         await runtime.db.close()
 
 
-app = FastAPI(title="Selvora API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Invend API", version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().web_origins,

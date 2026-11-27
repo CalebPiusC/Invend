@@ -406,7 +406,7 @@ async def callback(rt: RuntimeDep, state: str = "", code: str = "", error: str =
         raise HTTPException(400, "Gmail authorization was cancelled")
     await oauth.complete(rt, state, code)
     return HTMLResponse(
-        "<main><h1>Gmail connected</h1><p>Return to Selvora and refresh Channels. Initial email sync is queued.</p></main>"
+        "<main><h1>Gmail connected</h1><p>Return to Invend and refresh Channels. Initial email sync is queued.</p></main>"
     )
 
 

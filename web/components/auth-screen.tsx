@@ -156,7 +156,7 @@ export function AuthScreen({
             </p>
           )}
           <p className="mt-6 text-center text-sm text-slate-500">
-            {signUp ? 'Already part of Selvora?' : 'New to Selvora?'}{' '}
+            {signUp ? 'Already part of Invend?' : 'New to Invend?'}{' '}
             <button
               onClick={() => {
                 setSignUp(!signUp);

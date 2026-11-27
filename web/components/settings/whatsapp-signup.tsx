@@ -115,7 +115,7 @@ export function WhatsAppSignup({
       <p className="text-sm leading-6">
         {attempt.sandbox
           ? 'Sandbox: no Meta account or real number is connected, and no WhatsApp message is sent.'
-          : 'Connect your own WhatsApp Business number using Meta Embedded Signup. Selvora never asks for your Facebook password.'}
+          : 'Connect your own WhatsApp Business number using Meta Embedded Signup. Invend never asks for your Facebook password.'}
       </p>
       <Button
         disabled={!ready || busy}

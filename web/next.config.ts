@@ -3,6 +3,7 @@ import { checkBrowserEnv } from '../scripts/check-browser-env.mjs';
 
 const config: NextConfig = {
   allowedDevOrigins: ['*.e2b.app'],
+  devIndicators: false,
   async rewrites() {
     const origin = process.env.API_ORIGIN;
     return origin

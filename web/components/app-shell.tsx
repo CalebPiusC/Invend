@@ -1,6 +1,7 @@
 'use client';
 import { useState, type CSSProperties, type ReactNode } from 'react';
 import { Button } from './ui/button';
+import { BrandIcon } from './brand-icon';
 import { useDataClient } from './data/provider';
 import { WorkspaceData } from './data/workspace-data';
 import {
@@ -79,8 +80,12 @@ export function AppShell({
       >
         <div className="overflow-hidden px-1">
           {collapsed ? (
-            <span aria-label="Selvora" className="block text-center text-xl font-bold text-primary">
-              S
+            <span
+              role="img"
+              aria-label="Invend"
+              className="block text-center text-xl font-bold text-primary"
+            >
+              <BrandIcon size={36} className="mx-auto" />
             </span>
           ) : (
             brand
@@ -462,7 +467,7 @@ export function AppShell({
           <span>Built for your business. Rooting for your growth.</span>
           <span className="flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-            Selvora
+            Invend
           </span>
         </footer>
       </main>

@@ -1,4 +1,4 @@
-# B5 — WhatsApp Cloud API and Selvora helper
+# B5 — WhatsApp Cloud API and Invend helper
 
 > Current status authority: [status matrix](../status-matrix.md). This phase/design guide is technical context, not independent release sign-off.
 
@@ -73,7 +73,7 @@ requirements may require provider-specific operator action. Ownership conflicts 
 Token expiry/revocation is surfaced as provider failure; reconnect rather than reuse a
 rejected token. There is no claim that arbitrary Meta account migrations were tested.
 
-For Selvora's separate helper number configure WHATSAPP_HELPER_PHONE_ID,
+For Invend's separate helper number configure WHATSAPP_HELPER_PHONE_ID,
 WHATSAPP_HELPER_NUMBER, WHATSAPP_HELPER_TOKEN (server-only) and subscribe that account too.
 It is never shown as a vendor-owned customer channel. Customer messages route solely
 by provider phone_number_id, not user-supplied vendor IDs. Helper messages route by a

@@ -1,4 +1,4 @@
-# Contributing to Selvora
+# Contributing to Invend
 
 Start with [Getting started in 30 minutes](README.md#getting-started-in-30-minutes).
 You can run the sample workspace without accounts, Docker, API credentials or

@@ -1,4 +1,4 @@
-# Selvora phone demo
+# Invend phone demo
 
 > Current capability/release status: [status matrix](status-matrix.md). This guide documents sample/UI procedures, not live-provider acceptance.
 

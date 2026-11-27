@@ -24,7 +24,7 @@ def codes(rt):
 
 async def helper_account(rt, conn, vendor):
     return await conn.fetchval(
-        "INSERT INTO channel_accounts(vendor_id,channel,provider,external_account_id,display_name,status,helper_account) VALUES($1,'whatsapp','whatsapp',$2,'Selvora helper','connected',true) ON CONFLICT(channel,external_account_id) DO UPDATE SET status='connected' RETURNING id",
+        "INSERT INTO channel_accounts(vendor_id,channel,provider,external_account_id,display_name,status,helper_account) VALUES($1,'whatsapp','whatsapp',$2,'Invend helper','connected',true) ON CONFLICT(channel,external_account_id) DO UPDATE SET status='connected' RETURNING id",
         vendor,
         "helper:" + str(vendor),
     )
@@ -374,7 +374,7 @@ async def helper_instruction(conn, vendor, member, sender_hash, text, linked):
     if not link:
         raise ChannelError("HELPER_NOT_AUTHORIZED", False)
     if linked:
-        return "Your Selvora helper is linked. Send a stock/price instruction; every change needs YES confirmation."
+        return "Your Invend helper is linked. Send a stock/price instruction; every change needs YES confirmation."
     try:
         if text.strip().casefold() == "yes":
             if not link["pending_proposal_id"]:

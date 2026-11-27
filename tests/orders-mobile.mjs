@@ -46,7 +46,7 @@ try {
   const payment = page.getByRole('region', { name: 'Payment link', exact: true });
   assert.ok(
     (await payment.getByLabel('Payment link URL', { exact: true }).inputValue()).startsWith(
-      'https://paystack.com/pay/selvora-sample-do-not-pay-',
+      'https://paystack.com/pay/invend-sample-do-not-pay-',
     ),
   );
   await payment.getByRole('button', { name: 'Copy link', exact: true }).click();
@@ -120,11 +120,17 @@ try {
     .getByRole('region', { name: 'Digital receipt', exact: true })
     .getByText('Receipt #0013', { exact: true })
     .waitFor();
-  assert.ok((await reader.locator('body').innerText()).includes('unsigned sample snapshot'));
+  await reader
+    .getByText('Unsigned sample snapshot, not proof of real payment.', { exact: true })
+    .waitFor();
   assert.ok(
     await reader.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     'shared receipt fits phone',
   );
+  // The receipt remains inside the order dialog; close it before using the underlying nav.
+  const orderDialog = page.getByRole('dialog', { name: 'Order details', exact: true });
+  await orderDialog.getByRole('button', { name: 'Close panel', exact: true }).click();
+  await orderDialog.waitFor({ state: 'detached' });
   await page
     .getByRole('navigation', { name: 'Mobile navigation' })
     .getByRole('button', { name: 'Inbox', exact: true })

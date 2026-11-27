@@ -60,6 +60,12 @@ it('supports password sign-in and Google OAuth', async () => {
     expect.objectContaining({ provider: 'google' }),
   );
 });
+it('opens the existing password sign-in directly from the public homepage entry', async () => {
+  render(<Workspace initialSignUp={false} />);
+  expect(await screen.findByRole('heading', { name: 'Welcome back.' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Create your account' })).not.toBeInTheDocument();
+});
 it('saves confirmed onboarding with the authenticated database RPC', async () => {
   mocks.user = { id: 'user-a' };
   mocks.rpc.mockResolvedValue({ data: 'vendor-a', error: null });

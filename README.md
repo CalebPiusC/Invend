@@ -1,4 +1,4 @@
-# Selvora
+# Invend
 
 Mobile-first sales-assistant workspace for Nigerian vendors: inbox, fact-based
 catalogue, approvals, human takeover, orders, receipts and business operations.
@@ -176,6 +176,31 @@ See [original B1 endpoint gaps](docs/backend/b1-gap-audit.md),
 [S0 validation](docs/s0-validation.md). Older phase narratives are context, not
 completion evidence. S1 catalogue/settings completion and S2 Gemini wording have
 not been implemented by S0. No live-provider/release approval is recorded.
+
+## Brand assets
+
+The product is **Invend**, with a lowercase **invend** wordmark. The shopping-bag/filter
+symbol has an open handle, a flat base and a restrained gold accent. Exported brand assets use
+charcoal `#1C1C1C` and gold `#F5B700`; the homepage pairs these with cream `#FFF8E6`, warm white
+`#FFFEFA` and white `#FFFFFF`. This marketing palette is scoped to the homepage, not the
+existing authenticated workspace theme.
+
+- Horizontal logo: `web/public/invend-logo.svg`; white version: `invend-logo-inverse.svg`.
+- Standalone symbol: `web/public/invend-icon.svg`; compact tile: `invend-compact.svg`.
+- Browser icons: `favicon.svg` and multi-size `favicon.ico`; Apple touch icon: `apple-touch-icon.png`.
+- PWA icons: `invend-icon-192.png` and `invend-icon-512.png` (mask-safe).
+
+`web/components/brand-icon.tsx` and these assets share `web/lib/brand-mark.ts` geometry.
+Run `node scripts/write-brand-assets.mjs` from the repository root with Node 22.18+
+(after `npm ci`) to regenerate the assets using the existing local font and image tools.
+The SVG wordmarks are outlined; they need no remotely loaded font. Validate assets with
+`npm run test:pwa`; with the mock server running, `node tests/branding.mjs` checks desktop/mobile
+branding, theme compatibility and the real browser offline-cache upgrade.
+
+Repository/package names, database roles, Redis/cache namespaces, theme-storage keys,
+message IDs and test environment variables retain their compatibility identifiers.
+Historical audits, research and release records are not rewritten. Legacy icon URLs
+serve the new symbol so existing bookmarks do not break. No domain migration is implied.
 
 ## Guides
 

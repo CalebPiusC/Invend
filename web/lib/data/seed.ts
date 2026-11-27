@@ -245,7 +245,7 @@ export function createSeed(vendorId = SAMPLE_VENDOR): Seed {
       deliveryAddress: `${12 + i} ${c.city === 'Lagos' ? 'Adetokunbo Ademola Street, Victoria Island' : c.city === 'Abuja' ? 'Gimbiya Street, Garki' : 'Bodija Road, Bodija'}, ${c.city}, Nigeria`,
       paymentScreenshotReceived: i === 0,
       paymentLink:
-        status === 'draft' ? null : `https://paystack.com/pay/selvora-sample-do-not-pay-${i + 1}`,
+        status === 'draft' ? null : `https://paystack.com/pay/invend-sample-do-not-pay-${i + 1}`,
       paidAt: paid ? at(i * 120) : null,
       stockMovements: [],
       timeline: [

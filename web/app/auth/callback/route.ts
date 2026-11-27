@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       },
     );
     const { error } = await client.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL('/', request.url));
+    if (!error) return NextResponse.redirect(new URL('/app', request.url));
   }
-  return NextResponse.redirect(new URL('/?auth_error=1', request.url));
+  return NextResponse.redirect(new URL('/app?auth=sign-in&auth_error=1', request.url));
 }

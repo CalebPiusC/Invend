@@ -14,7 +14,7 @@ Git. Release approver: ______ Date: ______ Evidence location: ______
 - [ ] Choose launch channels explicitly. B6 Meta Instagram/Facebook integration
   and TikTok approval remain unfinished. Do not advertise them as working.
 - [ ] Approve WhatsApp account/number/Embedded Signup permissions and outbound
-  templates; keep merchant numbers separate from the Selvora helper number.
+  templates; keep merchant numbers separate from the Invend helper number.
 - [ ] Complete or explicitly exclude unfinished B7 work: physical account deletion,
   media physical-retention purge, live invitation/translation acceptance and broader
   restock/role/race tests. Do not call a deletion request completed erasure.
